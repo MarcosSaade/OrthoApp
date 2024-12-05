@@ -45,28 +45,39 @@ class AspectRatioLabel(QLabel):
 class VentanaPrincipal(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Orto-Flex Scanner")
+        try:
+            self.setWindowTitle("Orto-Flex Scanner")
 
-        # Load user preferences
-        self.settings = QSettings("OrthoFlex", "ScannerApp")
-        self.load_preferences()
+            # Load user preferences
+            self.settings = QSettings("OrthoFlex", "ScannerApp")
+            self.load_preferences()
 
-        # Initialize image variables
-        self.left_image_original = None
-        self.left_image_processed = None
-        self.right_image_original = None
-        self.right_image_processed = None
-        self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
+            # Initialize image variables
+            self.left_image_original = None
+            self.left_image_processed = None
+            self.right_image_original = None
+            self.right_image_processed = None
+            self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
 
-        # Load Roboto Font
-        self.font_family = load_fonts()
+            print("Initialized VentanaPrincipal with attributes:")
+            print(f"left_image_original: {self.left_image_original}")
+            print(f"left_image_processed: {self.left_image_processed}")
+            print(f"right_image_original: {self.right_image_original}")
+            print(f"right_image_processed: {self.right_image_processed}")
 
-        # Initialize UI components
-        self.inicializar_componentes()
-        self.aplicar_estilos()
+            # Load Roboto Font
+            self.font_family = load_fonts()
 
-        # Show application in fullscreen
-        self.showFullScreen()
+            # Initialize UI components
+            self.inicializar_componentes()
+            self.aplicar_estilos()
+
+            # Show application in fullscreen
+            self.showFullScreen()
+        except Exception as e:
+            print(f"Exception during VentanaPrincipal initialization: {e}")
+            QMessageBox.critical(self, "Error", f"Error during initialization: {str(e)}")
+
 
     def inicializar_componentes(self):
         # Menu Bar
