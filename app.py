@@ -15,7 +15,7 @@ from scanner import scan_image
 
 
 # Define TEST_MODE
-TEST_MODE = False  # Set to True for testing (uploads images), False for production (scans images)
+TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
 
 
 class AspectRatioLabel(QLabel):
@@ -66,10 +66,8 @@ class VentanaPrincipal(QMainWindow):
         self.inicializar_componentes()
         self.aplicar_estilos()
 
-        # Set initial window size based on screen size
-        screen = QApplication.primaryScreen()
-        size = screen.size()
-        self.resize(int(size.width() * 0.8), int(size.height() * 0.8))  # 80% of screen size
+        # Set initial window size based on screen size (optimized for 1366x768)
+        self.setFixedSize(1200, 700)  # Adjusted size to fit the target resolution
 
     def inicializar_componentes(self):
         # Menu Bar
@@ -80,17 +78,17 @@ class VentanaPrincipal(QMainWindow):
         header_layout = QVBoxLayout()
         header_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
 
-        # Clinic Logo (Non-Square)
+        # Clinic Logo (Smaller Size)
         self.label_logo = QLabel()
         self.label_logo.setAlignment(Qt.AlignCenter)
         logo_path = os.path.join('resources', 'logo.png')  # Ensure 'logo.png' exists in 'resources' folder
         if os.path.exists(logo_path):
             pixmap_logo = QPixmap(logo_path)
-            pixmap_logo = pixmap_logo.scaledToHeight(150, Qt.SmoothTransformation)  # Increased height to 150
+            pixmap_logo = pixmap_logo.scaledToHeight(100, Qt.SmoothTransformation)  # Reduced height to 100
             self.label_logo.setPixmap(pixmap_logo)
         else:
             self.label_logo.setText("Logo")
-            self.label_logo.setFont(QFont(self.font_family, 20))
+            self.label_logo.setFont(QFont(self.font_family, 16))  # Adjusted font size
             self.label_logo.setStyleSheet("color: #1d3557;")
 
         # Scanner Label
@@ -106,9 +104,13 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot with Scroll Areas
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #000000; border: 1px solid #ccc;")
+        self.label_imagen_izquierda.setFixedHeight(300)  # Ensures ample vertical space
+        self.label_imagen_izquierda.setMinimumWidth(500)  # Prevents excessive horizontal shrinking
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #000000; border: 1px solid #ccc;")
+        self.label_imagen_derecha.setFixedHeight(300)  # Ensures ample vertical space
+        self.label_imagen_derecha.setMinimumWidth(500)  # Prevents excessive horizontal shrinking
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -134,16 +136,18 @@ class VentanaPrincipal(QMainWindow):
         self.scroll_area_izquierda.setWidgetResizable(True)
         self.scroll_area_izquierda.setWidget(self.label_imagen_izquierda)
         self.scroll_area_izquierda.setStyleSheet("background-color: #000000;")
+        self.scroll_area_izquierda.setFixedHeight(320)  # Slightly larger to accommodate padding
 
         self.scroll_area_derecha = QScrollArea()
         self.scroll_area_derecha.setWidgetResizable(True)
         self.scroll_area_derecha.setWidget(self.label_imagen_derecha)
         self.scroll_area_derecha.setStyleSheet("background-color: #000000;")
+        self.scroll_area_derecha.setFixedHeight(320)  # Slightly larger to accommodate padding
 
-        # Images Layout
+        # Images Layout (Side by Side)
         imagenes_layout = QHBoxLayout()
-        imagenes_layout.addWidget(self.scroll_area_izquierda, 1)
-        imagenes_layout.addWidget(self.scroll_area_derecha, 1)
+        imagenes_layout.addWidget(self.scroll_area_izquierda)
+        imagenes_layout.addWidget(self.scroll_area_derecha)
         imagenes_layout.setStretch(0, 1)
         imagenes_layout.setStretch(1, 1)
         imagenes_layout.setSpacing(20)
@@ -153,30 +157,31 @@ class VentanaPrincipal(QMainWindow):
             self.boton_cargar_izquierdo = QPushButton("Cargar Pie Izquierdo")
             self.boton_cargar_izquierdo.clicked.connect(self.cargar_imagen_izquierda)
             self.boton_cargar_izquierdo.setToolTip("Cargar imagen del pie izquierdo")
-
-            self.boton_cargar_derecho = QPushButton("Cargar Pie Derecho")
-            self.boton_cargar_derecho.clicked.connect(self.cargar_imagen_derecha)
-            self.boton_cargar_derecho.setToolTip("Cargar imagen del pie derecho")
         else:
             self.boton_cargar_izquierdo = QPushButton("Escanear Pie Izquierdo")
             self.boton_cargar_izquierdo.clicked.connect(self.escanear_imagen_izquierda)
             self.boton_cargar_izquierdo.setToolTip("Escanear el pie izquierdo")
 
+        if TEST_MODE:
+            self.boton_cargar_derecho = QPushButton("Cargar Pie Derecho")
+            self.boton_cargar_derecho.clicked.connect(self.cargar_imagen_derecha)
+            self.boton_cargar_derecho.setToolTip("Cargar imagen del pie derecho")
+        else:
             self.boton_cargar_derecho = QPushButton("Escanear Pie Derecho")
             self.boton_cargar_derecho.clicked.connect(self.escanear_imagen_derecha)
             self.boton_cargar_derecho.setToolTip("Escanear el pie derecho")
 
-        self.boton_cargar_izquierdo.setFixedSize(250, 60)
+        self.boton_cargar_izquierdo.setFixedSize(200, 50)
         self.boton_cargar_izquierdo.setFont(QFont(self.font_family, 14))
         self.boton_cargar_izquierdo.setObjectName('boton_cargar')
 
-        self.boton_cargar_derecho.setFixedSize(250, 60)
+        self.boton_cargar_derecho.setFixedSize(200, 50)
         self.boton_cargar_derecho.setFont(QFont(self.font_family, 14))
         self.boton_cargar_derecho.setObjectName('boton_cargar')
 
         self.boton_generar_reporte = QPushButton("Generar Reporte")
         self.boton_generar_reporte.clicked.connect(self.generar_reporte)
-        self.boton_generar_reporte.setFixedSize(250, 60)
+        self.boton_generar_reporte.setFixedSize(200, 50)
         self.boton_generar_reporte.setToolTip("Generar reporte PDF")
         self.boton_generar_reporte.setFont(QFont(self.font_family, 14))
         self.boton_generar_reporte.setEnabled(False)
@@ -246,8 +251,8 @@ class VentanaPrincipal(QMainWindow):
             background-color: #3e4095;
             color: white;
             border-radius: 10px;
-            padding: 15px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 14px;
             font-weight: 500;
             font-family: 'Roboto', sans-serif;
         }
