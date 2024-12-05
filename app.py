@@ -66,8 +66,8 @@ class VentanaPrincipal(QMainWindow):
         self.inicializar_componentes()
         self.aplicar_estilos()
 
-        # Set initial window size based on screen size (optimized for 1366x768)
-        self.setFixedSize(1200, 700)  # Adjusted size to fit the target resolution
+        # Show application in fullscreen
+        self.showFullScreen()
 
     def inicializar_componentes(self):
         # Menu Bar
@@ -84,11 +84,11 @@ class VentanaPrincipal(QMainWindow):
         logo_path = os.path.join('resources', 'logo.png')  # Ensure 'logo.png' exists in 'resources' folder
         if os.path.exists(logo_path):
             pixmap_logo = QPixmap(logo_path)
-            pixmap_logo = pixmap_logo.scaledToHeight(100, Qt.SmoothTransformation)  # Reduced height to 100
+            pixmap_logo = pixmap_logo.scaledToHeight(80, Qt.SmoothTransformation)  # Reduced height to 80
             self.label_logo.setPixmap(pixmap_logo)
         else:
             self.label_logo.setText("Logo")
-            self.label_logo.setFont(QFont(self.font_family, 16))  # Adjusted font size
+            self.label_logo.setFont(QFont(self.font_family, 14))  # Adjusted font size
             self.label_logo.setStyleSheet("color: #1d3557;")
 
         # Scanner Label
@@ -103,12 +103,12 @@ class VentanaPrincipal(QMainWindow):
 
         # Image Labels for Left and Right Foot with Scroll Areas
         self.label_imagen_izquierda = AspectRatioLabel()
-        self.label_imagen_izquierda.setStyleSheet("background-color: #000000; border: 1px solid #ccc;")
+        self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
         self.label_imagen_izquierda.setFixedHeight(300)  # Ensures ample vertical space
         self.label_imagen_izquierda.setMinimumWidth(500)  # Prevents excessive horizontal shrinking
 
         self.label_imagen_derecha = AspectRatioLabel()
-        self.label_imagen_derecha.setStyleSheet("background-color: #000000; border: 1px solid #ccc;")
+        self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
         self.label_imagen_derecha.setFixedHeight(300)  # Ensures ample vertical space
         self.label_imagen_derecha.setMinimumWidth(500)  # Prevents excessive horizontal shrinking
 
@@ -135,14 +135,12 @@ class VentanaPrincipal(QMainWindow):
         self.scroll_area_izquierda = QScrollArea()
         self.scroll_area_izquierda.setWidgetResizable(True)
         self.scroll_area_izquierda.setWidget(self.label_imagen_izquierda)
-        self.scroll_area_izquierda.setStyleSheet("background-color: #000000;")
-        self.scroll_area_izquierda.setFixedHeight(320)  # Slightly larger to accommodate padding
+        self.scroll_area_izquierda.setStyleSheet("background-color: #FFFFFF;")  # Changed to white
 
         self.scroll_area_derecha = QScrollArea()
         self.scroll_area_derecha.setWidgetResizable(True)
         self.scroll_area_derecha.setWidget(self.label_imagen_derecha)
-        self.scroll_area_derecha.setStyleSheet("background-color: #000000;")
-        self.scroll_area_derecha.setFixedHeight(320)  # Slightly larger to accommodate padding
+        self.scroll_area_derecha.setStyleSheet("background-color: #FFFFFF;")  # Changed to white
 
         # Images Layout (Side by Side)
         imagenes_layout = QHBoxLayout()
@@ -236,7 +234,7 @@ class VentanaPrincipal(QMainWindow):
         # Style Sheet for the application
         estilo = """
         QMainWindow {
-            background-color: #e8eff5;
+            background-color: #FFFFFF;  /* Changed to white */
         }
         QLabel#label_titulo {
             color: #1d3557;
@@ -581,7 +579,7 @@ def main():
     import sys
     app = QApplication(sys.argv)
     ventana = VentanaPrincipal()
-    ventana.show()
+    # ventana.show()  # Removed because showFullScreen is called in the __init__
     sys.exit(app.exec_())
 
 
