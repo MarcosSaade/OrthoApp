@@ -6,64 +6,81 @@ import cv2
 import os
 import uuid
 
-def scan_image(brightness=59, contrast=100):
+def scan_image():
     pythoncom.CoInitialize()
     try:
-        # Initialize WIA Device Manager
+        # Inicializar el administrador de dispositivos WIA
         device_manager = win32com.client.Dispatch("WIA.DeviceManager")
-        
-        # Select the first available scanner
+        devices = device_manager.DeviceInfos
+
+        if len(devices) == 0:
+            raise Exception("No se encontraron dispositivos WIA conectados.")
+
+        # Seleccionar el primer escáner disponible
         scanner = None
-        for device in device_manager.DeviceInfos:
-            if device.Type == 1:  # 1 corresponds to scanners
-                scanner = device.Connect()
+        for device_info in devices:
+            if device_info.Type == 1:  # 1 corresponde a dispositivos de escáner
+                scanner = device_info.Connect()
                 break
-        
+
         if scanner is None:
-            raise Exception("No scanner found. Please ensure a scanner is connected.")
-        
-        # Access the scanner's item (the scanning device)
-        scan_item = scanner.Items[1]
-        
-        # Define scan properties
+            raise Exception("No se encontró ningún escáner conectado.")
+
+        # Seleccionar el primer ítem del escáner (generalmente el escáner plano)
+        scan_item = scanner.Items[1]  # Los ítems están indexados a partir de 1
+
+        # Configurar las propiedades de digitalización
         properties = scan_item.Properties
-        
-        # Set DPI (resolution)
-        properties["6147"].Value = 300  # Horizontal Resolution
-        properties["6148"].Value = 300  # Vertical Resolution
-        
-        # Set color mode
-        # 1 = Grayscale, 2 = Color, 4 = Black & White
-        properties["6151"].Value = 2  # Color
-        
-        # Set brightness and contrast
-        # Property IDs for brightness and contrast
-        properties["6154"].Value = brightness  # Brightness adjustment
-        properties["6155"].Value = contrast   # Contrast adjustment
-        
-        # Set format to BMP
-        format_id = "{B96B3CAB-0728-11D3-9D7B-0000F81EF32E}"
-        
-        # Perform the scan
-        image = scan_item.Transfer(format_id)
-        
-        # Create a unique temporary filename
+
+        # Definir los IDs de las propiedades de brillo y contraste
+        WIA_IPS_BRIGHTNESS = "6146"
+        WIA_IPS_CONTRAST = "6147"
+
+        # Establecer el brillo
+        if WIA_IPS_BRIGHTNESS in [prop.PropertyID for prop in properties]:
+            brightness = scan_item.Properties(WIA_IPS_BRIGHTNESS)
+            brightness.Value = 1000  # Ajusta este valor según el rango soportado por tu escáner
+        else:
+            print("La propiedad de brillo no está disponible en este escáner.")
+
+        # Establecer el contraste
+        if WIA_IPS_CONTRAST in [prop.PropertyID for prop in properties]:
+            contrast = scan_item.Properties(WIA_IPS_CONTRAST)
+            contrast.Value = 800  # Ajusta este valor según el rango soportado por tu escáner
+        else:
+            print("La propiedad de contraste no está disponible en este escáner.")
+
+        # Realizar la digitalización en formato BMP
+        image = scan_item.Transfer("{B96B3CAB-0728-11D3-9D7B-0000F81EF32E}")  # Formato BMP
+
+        # Crear un nombre de archivo temporal único
         temp_filename = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.bmp")
-        
-        # Save the image to the temporary file
+
+        # Guardar la imagen escaneada en el archivo temporal
         image.SaveFile(temp_filename)
-        
-        # Load the image using OpenCV
+
+        # Leer la imagen usando OpenCV
         scanned_image = cv2.imread(temp_filename)
         if scanned_image is None:
-            raise Exception("Scanned image is empty or could not be read properly.")
-        
-        # Delete the temporary file
+            raise Exception("La imagen escaneada está vacía o no se pudo leer correctamente.")
+
+        # Eliminar el archivo temporal
         os.unlink(temp_filename)
-        
+
         return scanned_image
-    
+
     except Exception as e:
-        raise Exception(f"Error scanning image: {str(e)}")
+        raise Exception(f"Error al escanear la imagen: {str(e)}")
     finally:
         pythoncom.CoUninitialize()
+
+if __name__ == "__main__":
+    try:
+        image = scan_image()
+        # Aquí puedes procesar la imagen escaneada según tus necesidades
+        # Por ejemplo, mostrarla usando OpenCV
+        cv2.imshow("Imagen Escaneada", image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    except Exception as error:
+        print(error)
