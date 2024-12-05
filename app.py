@@ -48,15 +48,16 @@ class VentanaPrincipal(QMainWindow):
         super().__init__()
         self.setWindowTitle("Orto-Flex Scanner")
 
-        # Load user preferences
-        self.settings = QSettings("OrthoFlex", "ScannerApp")
-        self.load_preferences()
-
         # Initialize image variables
         self.left_image_original = None
         self.left_image_processed = None
         self.right_image_original = None
         self.right_image_processed = None
+        
+        # Load user preferences
+        self.settings = QSettings("OrthoFlex", "ScannerApp")
+        self.load_preferences()
+
         self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
 
         # Load Roboto Font
