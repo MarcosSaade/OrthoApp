@@ -3,7 +3,7 @@ import os
 import cv2
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QWidget, QMessageBox, QSizePolicy, QAction, QDialog
+    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSettings
@@ -12,7 +12,6 @@ from ui_components import PatientInfoDialog
 from image_processing import procesar_imagen
 from pdf_report import generate_pdf_report
 from scanner import scan_image
-
 
 # Define TEST_MODE
 TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
@@ -25,7 +24,7 @@ class AspectRatioLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
-        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._pixmap = None
 
     def setPixmap(self, pixmap):
@@ -97,11 +96,15 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_izquierda.setFixedSize(600, 700)  # Slightly taller than square
+        # Removed fixed size and set size policy
+        # self.label_imagen_izquierda.setFixedSize(600, 700)  # Removed
+        self.label_imagen_izquierda.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_derecha.setFixedSize(600, 700)  # Slightly taller than square
+        # Removed fixed size and set size policy
+        # self.label_imagen_derecha.setFixedSize(600, 700)  # Removed
+        self.label_imagen_derecha.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -149,21 +152,24 @@ class VentanaPrincipal(QMainWindow):
             self.boton_cargar_derecho.clicked.connect(self.escanear_imagen_derecha)
             self.boton_cargar_derecho.setToolTip("Escanear el pie derecho")
 
-        self.boton_cargar_izquierdo.setFixedSize(200, 50)
-        self.boton_cargar_izquierdo.setFont(QFont(self.font_family, 14))
-        self.boton_cargar_izquierdo.setObjectName('boton_cargar')
-
-        self.boton_cargar_derecho.setFixedSize(200, 50)
-        self.boton_cargar_derecho.setFont(QFont(self.font_family, 14))
-        self.boton_cargar_derecho.setObjectName('boton_cargar')
-
+        # Set responsive sizes instead of fixed sizes
+        self.boton_cargar_izquierdo.setMinimumSize(150, 40)
+        self.boton_cargar_derecho.setMinimumSize(150, 40)
         self.boton_generar_reporte = QPushButton("Generar Reporte")
         self.boton_generar_reporte.clicked.connect(self.generar_reporte)
-        self.boton_generar_reporte.setFixedSize(200, 50)
+        self.boton_generar_reporte.setMinimumSize(150, 40)
         self.boton_generar_reporte.setToolTip("Generar reporte PDF")
-        self.boton_generar_reporte.setFont(QFont(self.font_family, 14))
         self.boton_generar_reporte.setEnabled(False)
-        self.boton_generar_reporte.setObjectName('boton_generar_reporte')
+
+        # Apply font to buttons
+        buttons = [self.boton_cargar_izquierdo, self.boton_cargar_derecho, self.boton_generar_reporte]
+        for button in buttons:
+            button.setFont(QFont(self.font_family, 14))
+            # Ensure buttons have the appropriate object names for styling
+            if button == self.boton_generar_reporte:
+                button.setObjectName('boton_generar_reporte')
+            else:
+                button.setObjectName('boton_cargar')
 
         # Buttons Layout
         botones_layout = QHBoxLayout()
@@ -179,6 +185,7 @@ class VentanaPrincipal(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addLayout(header_layout)
         main_layout.addLayout(imagenes_layout)
+        main_layout.addStretch()  # Add stretch to push buttons to the bottom
         main_layout.addLayout(botones_layout)
         main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
@@ -569,5 +576,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Hello
