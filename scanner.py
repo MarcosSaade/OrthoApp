@@ -6,7 +6,7 @@ import cv2
 import os
 import uuid
 
-def scan_image(brightness=0, contrast=0):
+def scan_image(brightness=59, contrast=100):
     pythoncom.CoInitialize()
     try:
         # Initialize WIA Device Manager
@@ -67,14 +67,3 @@ def scan_image(brightness=0, contrast=0):
         raise Exception(f"Error scanning image: {str(e)}")
     finally:
         pythoncom.CoUninitialize()
-
-# Example usage
-if __name__ == "__main__":
-    try:
-        # Example: Scan with brightness +50 and contrast +30
-        img = scan_image(brightness=50, contrast=30)
-        cv2.imshow("Scanned Image", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    except Exception as error:
-        print(error)
