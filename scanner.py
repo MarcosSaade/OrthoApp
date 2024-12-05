@@ -1,9 +1,13 @@
+# scanner.py
 import win32com.client
 import pythoncom
 import tempfile
 import cv2
 import os
 import uuid
+
+# Flag to control whether to show the scanned image for testing
+TEST_SCAN = True
 
 def scan_image():
     pythoncom.CoInitialize()
@@ -80,9 +84,24 @@ def scan_image():
         # Delete the temp file
         os.unlink(temp_filename)
 
+        # If TEST_SCAN is True, display the scanned image for debugging
+        if TEST_SCAN:
+            cv2.imshow("Scanned Image - Original", scanned_image)
+            print("Presione cualquier tecla en la ventana de la imagen para continuar...")
+            cv2.waitKey(0)  # Wait indefinitely until a key is pressed
+            cv2.destroyAllWindows()
+
         return scanned_image
 
     except Exception as e:
         raise Exception(f"Error al escanear la imagen: {str(e)}")
     finally:
         pythoncom.CoUninitialize()
+
+if __name__ == "__main__":
+    # Example usage
+    try:
+        image = scan_image()
+        # Aquí puedes agregar más procesamiento de la imagen si lo deseas
+    except Exception as error:
+        print(error)
