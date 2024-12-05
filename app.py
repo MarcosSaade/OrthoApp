@@ -3,7 +3,7 @@ import os
 import cv2
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QWidget, QMessageBox, QSizePolicy, QAction, QDialog
+    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem, QSizePolicy
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSettings
@@ -98,11 +98,11 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_izquierda.setFixedSize(600, 700)  # Slightly taller than square
+        self.label_imagen_izquierda.setFixedSize(600, 600)  # Reduced height to 600
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_derecha.setFixedSize(600, 700)  # Slightly taller than square
+        self.label_imagen_derecha.setFixedSize(600, 600)  # Reduced height to 600
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -168,7 +168,7 @@ class VentanaPrincipal(QMainWindow):
 
         # Buttons Layout
         botones_layout = QHBoxLayout()
-        botones_layout.setContentsMargins(0, 30, 0, 30)
+        botones_layout.setContentsMargins(0, 0, 0, 20)  # Reduced top and bottom margins
         botones_layout.addStretch()
         botones_layout.addWidget(self.boton_cargar_izquierdo)
         botones_layout.addWidget(self.boton_cargar_derecho)
@@ -176,10 +176,14 @@ class VentanaPrincipal(QMainWindow):
         botones_layout.addStretch()
         botones_layout.setSpacing(40)
 
+        # Spacer to push buttons to the bottom
+        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
         # Main Layout
         main_layout = QVBoxLayout()
         main_layout.addLayout(header_layout)
         main_layout.addLayout(imagenes_layout)
+        main_layout.addSpacerItem(spacer)  # Add spacer before buttons
         main_layout.addLayout(botones_layout)
         main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
@@ -570,5 +574,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Hello
