@@ -47,7 +47,7 @@ def procesar_imagen(ruta, ruta_logotipo, recolor=True, image=None, foot_side="ri
     hsv = cv2.cvtColor(imagen, cv2.COLOR_BGR2HSV)
 
     # Define skin color range (adjust as needed)
-    lower_skin = np.array([0, 100, 170], dtype=np.uint8)
+    lower_skin = np.array([0, 100, 100], dtype=np.uint8)
     upper_skin = np.array([140, 255, 255], dtype=np.uint8)
 
     # Create a mask for the foot
@@ -57,8 +57,8 @@ def procesar_imagen(ruta, ruta_logotipo, recolor=True, image=None, foot_side="ri
     mask = cv2.GaussianBlur(mask, (7, 7), 0)
 
     # Clean the mask using morphological operations
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=25)  # Close holes
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=35)  # Close holes
 
     # Find contours to isolate the largest region (the foot)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
