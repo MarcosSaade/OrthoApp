@@ -53,9 +53,9 @@ class VentanaPrincipal(QMainWindow):
         self.left_image_processed = None
         self.right_image_original = None
         self.right_image_processed = None
-        
+
         # Load user preferences
-        self.settings = QSettings("OrthoFlex", "ScannerApp")
+        self.settings = QSettings("OrtoFlex", "ScannerApp")
         self.load_preferences()
 
         self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
