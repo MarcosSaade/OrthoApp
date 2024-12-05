@@ -3,7 +3,7 @@ import os
 import cv2
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QWidget, QMessageBox, QSizePolicy, QAction, QScrollArea, QDialog
+    QWidget, QMessageBox, QSizePolicy, QAction, QDialog
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSettings
@@ -84,7 +84,7 @@ class VentanaPrincipal(QMainWindow):
         logo_path = os.path.join('resources', 'logo.png')  # Ensure 'logo.png' exists in 'resources' folder
         if os.path.exists(logo_path):
             pixmap_logo = QPixmap(logo_path)
-            pixmap_logo = pixmap_logo.scaledToHeight(80, Qt.SmoothTransformation)  # Reduced height to 80
+            pixmap_logo = pixmap_logo.scaledToHeight(60, Qt.SmoothTransformation)  # Further reduced height to 60
             self.label_logo.setPixmap(pixmap_logo)
         else:
             self.label_logo.setText("Logo")
@@ -94,7 +94,7 @@ class VentanaPrincipal(QMainWindow):
         # Add logo to header layout
         header_layout.addWidget(self.label_logo)
 
-        # Image Labels for Left and Right Foot with Scroll Areas
+        # Image Labels for Left and Right Foot
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
         self.label_imagen_izquierda.setFixedSize(600, 700)  # Slightly taller than square
@@ -122,21 +122,10 @@ class VentanaPrincipal(QMainWindow):
             self.label_imagen_derecha.setFont(QFont(self.font_family, 16))
             self.label_imagen_derecha.setStyleSheet("color: #1d3557;")
 
-        # Scroll Areas for Images to prevent them from being too large
-        self.scroll_area_izquierda = QScrollArea()
-        self.scroll_area_izquierda.setWidgetResizable(True)
-        self.scroll_area_izquierda.setWidget(self.label_imagen_izquierda)
-        self.scroll_area_izquierda.setStyleSheet("background-color: #FFFFFF;")  # Changed to white
-
-        self.scroll_area_derecha = QScrollArea()
-        self.scroll_area_derecha.setWidgetResizable(True)
-        self.scroll_area_derecha.setWidget(self.label_imagen_derecha)
-        self.scroll_area_derecha.setStyleSheet("background-color: #FFFFFF;")  # Changed to white
-
         # Images Layout (Side by Side)
         imagenes_layout = QHBoxLayout()
-        imagenes_layout.addWidget(self.scroll_area_izquierda)
-        imagenes_layout.addWidget(self.scroll_area_derecha)
+        imagenes_layout.addWidget(self.label_imagen_izquierda)
+        imagenes_layout.addWidget(self.label_imagen_derecha)
         imagenes_layout.setStretch(0, 1)
         imagenes_layout.setStretch(1, 1)
         imagenes_layout.setSpacing(40)  # Increased spacing for better appearance
@@ -230,10 +219,6 @@ class VentanaPrincipal(QMainWindow):
         QLabel#label_titulo {
             color: #1d3557;
             font-weight: bold;
-            font-family: 'Roboto', sans-serif;
-        }
-        QLabel#label_scanner {
-            color: #1d3557;
             font-family: 'Roboto', sans-serif;
         }
         QPushButton#boton_cargar, QPushButton#boton_generar_reporte {
