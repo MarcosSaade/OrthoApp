@@ -1,18 +1,17 @@
 # pdf_report.py
 import os
 import cv2
-import re  # Import the re module for regex
+import re
 from io import BytesIO
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle, PageBreak
+    Paragraph, Spacer, Image as RLImage, Table, TableStyle, PageBreak
 )
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch, cm
+from reportlab.lib.units import cm, inch
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
 from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate
 from PyQt5.QtWidgets import QFileDialog
 import datetime
@@ -29,7 +28,7 @@ def generate_pdf_report(
     left_skin_image, right_skin_image,
     left_heatmap_image, right_heatmap_image,
     left_original_image, right_original_image,
-    last_directory
+    last_directory, fecha_escaneo
 ):
     # Build the default filename if paciente and order_number are provided
     default_filename = "Reporte.pdf"
@@ -145,41 +144,37 @@ def generate_pdf_report(
 
     # Function to create patient info table
     def create_patient_info_table():
-        # Format entrega_date
+        # Format dates
         entrega_date_formatted = format_date_spanish(entrega_date)
+        fecha_escaneo_formatted = format_date_spanish(fecha_escaneo)
 
         patient_info_left = f"""
-        <b>Paciente:</b> {paciente}<br/>
-        <b>Teléfono:</b> {telefono}<br/>
-        <b>Longitud del Pie:</b> {longitud_pie}<br/>
-        <b>Material:</b> {material}<br/>
-        """
-
-        patient_info_middle = f"""
-        <b>Fecha de Entrega:</b> {entrega_date_formatted}<br/>
         <b>Sucursal:</b> {sucursal}<br/>
         <b>Taller:</b> {taller}<br/>
+        <b>Fecha de Escaneo:</b> {fecha_escaneo_formatted}<br/>
+        <b>Fecha de Entrega:</b> {entrega_date_formatted}<br/>
         """
 
         patient_info_right = f"""
+        <b>Paciente:</b> {paciente}<br/>
+        <b>Teléfono:</b> {telefono}<br/>
+        <b>Longitud del Pie:</b> {longitud_pie}<br/>
         <b>No. Orden:</b> {order_number}<br/>
         """
 
         data_patient_info = [
             [Paragraph(patient_info_left, normal_style),
-             Paragraph(patient_info_middle, normal_style),
              Paragraph(patient_info_right, normal_style)]
         ]
 
-        # **Modification 1:** Adjusted column widths to make the middle column wider
+        # Adjust column widths
         table_patient_info = Table(
             data_patient_info,
-            colWidths=[doc.width * 0.25, doc.width * 0.5, doc.width * 0.25]  # Adjusted widths
+            colWidths=[doc.width * 0.5, doc.width * 0.5]
         )
 
         table_patient_info.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('VALIGN', (2, 0), (2, 0), 'BOTTOM'),  # **Modification 2:** Align order number at the bottom
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
             ('RIGHTPADDING', (0, 0), (-1, -1), 12),
             ('TOPPADDING', (0, 0), (-1, -1), 12),
@@ -294,7 +289,7 @@ def generate_pdf_report(
     # Add second page
     elements.append(PageBreak())
 
-    # **Modification 3:** Add Spacer to vertically center the content on the second page
+    # Add Spacer to vertically center the content on the second page
     elements.append(Spacer(1, 2 * inch))  # Adjust the spacer height as needed
 
     # --- Begin Modifications for Original Images ---
@@ -316,7 +311,7 @@ def generate_pdf_report(
     left_original_resized = resize_image_to_fixed_size(left_original_image, 1100, 1600)
     right_original_resized = resize_image_to_fixed_size(right_original_image, 1100, 1600)
 
-    # **Modification 4:** Flip the original images horizontally
+    # Flip the original images horizontally
     left_original_flipped = cv2.flip(left_original_resized, 1)   # 1 denotes horizontal flip
     right_original_flipped = cv2.flip(right_original_resized, 1)
 
