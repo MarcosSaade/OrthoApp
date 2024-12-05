@@ -77,12 +77,30 @@ class PatientInfoDialog(QDialog):
         self.setLayout(layout)
 
     def calculate_next_delivery_date(self):
-        today = datetime.date.today()
-        target_weekday = 1  # Tuesday (Monday is 0)
+        now = datetime.datetime.now()
+        today = now.date()
+        current_weekday = now.weekday()  # Monday is 0 and Sunday is 6
+        current_time = now.time()
+        cutoff_time = datetime.time(12, 30)  # 12:30 PM
 
-        days_ahead = (target_weekday - today.weekday() + 7) % 7
-        if days_ahead == 0:
-            days_ahead = 7
+        if current_weekday == 0 and current_time < cutoff_time:  # Monday before 12:30 PM
+            target_weekday = 4  # Friday
+            days_ahead = (target_weekday - current_weekday) % 7
+            if days_ahead == 0:
+                days_ahead = 7
+            entrega_date = today + datetime.timedelta(days=days_ahead)
+        elif current_weekday == 3 and current_time < cutoff_time:  # Thursday before 12:30 PM
+            target_weekday = 1  # Next Tuesday
+            days_ahead = (target_weekday - current_weekday + 7) % 7
+            if days_ahead <= 0:
+                days_ahead += 7
+            entrega_date = today + datetime.timedelta(days=days_ahead)
+        else:
+            # Default: Next Tuesday
+            target_weekday = 1  # Tuesday
+            days_ahead = (target_weekday - current_weekday + 7) % 7
+            if days_ahead == 0:
+                days_ahead = 7
+            entrega_date = today + datetime.timedelta(days=days_ahead)
 
-        entrega_date = today + datetime.timedelta(days=days_ahead)
         return entrega_date
