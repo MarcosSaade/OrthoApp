@@ -8,10 +8,10 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSettings
 from utils import convertir_cv_qt, load_fonts
-from ui_components import PatientInfoDialog  # Ensure this import includes all necessary dialogs
+from ui_components import PatientInfoDialog
 from image_processing import procesar_imagen
 from pdf_report import generate_pdf_report
-from scanner import scan_image  # Import the scanning functionality
+from scanner import scan_image
 
 # Define TEST_MODE
 TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
@@ -185,8 +185,15 @@ class VentanaPrincipal(QMainWindow):
         self.setCentralWidget(contenedor)
     
     def crear_menu(self):
-        # Help Menu
+        # Menu Bar
         self.menu_bar = self.menuBar()
+        
+        # Nuevo Action
+        nuevo_action = QAction("Nuevo", self)
+        nuevo_action.triggered.connect(self.nuevo)
+        self.menu_bar.addAction(nuevo_action)
+        
+        # Help Menu
         help_menu = self.menu_bar.addMenu("Ayuda")
         
         # Help Action
@@ -327,9 +334,9 @@ class VentanaPrincipal(QMainWindow):
             # Rotate the image 180 degrees if necessary
             self.left_image_original = cv2.rotate(self.left_image_original, cv2.ROTATE_180)
             
-            # Process the image to remove background without recoloring
+            # Process the image with recoloring (heatmap)
             self.left_image_processed = procesar_imagen(
-                None, None, recolor=False, image=self.left_image_original, foot_side="left"
+                None, None, recolor=True, image=self.left_image_original, foot_side="left"
             )
             
             # Convert to QPixmap and display on the left side
@@ -355,9 +362,9 @@ class VentanaPrincipal(QMainWindow):
             # Rotate the image 180 degrees if necessary
             self.right_image_original = cv2.rotate(self.right_image_original, cv2.ROTATE_180)
             
-            # Process the image to remove background without recoloring
+            # Process the image with recoloring (heatmap)
             self.right_image_processed = procesar_imagen(
-                None, None, recolor=False, image=self.right_image_original, foot_side="right"
+                None, None, recolor=True, image=self.right_image_original, foot_side="right"
             )
             
             # Convert to QPixmap and display on the right side
@@ -419,8 +426,9 @@ class VentanaPrincipal(QMainWindow):
             longitud_pie = dialog.longitud_edit.text()
             material = dialog.material_edit.currentText()
             entrega_date = dialog.date_entrega_edit.date().toString("dd/MM/yyyy")
-            sucursal = dialog.sucursal_edit.currentText()  # Corrected from .text() to .currentText()
-            taller = dialog.taller_edit.currentText()  # Updated to currentText()
+            fecha_escaneo = dialog.fecha_escaneo_edit.date().toString("dd/MM/yyyy")
+            sucursal = dialog.sucursal_edit.currentText()
+            taller = dialog.taller_edit.currentText()
             order_number = dialog.order_number_edit.text()
             observaciones = dialog.observaciones_edit.toPlainText()
 
@@ -451,7 +459,7 @@ class VentanaPrincipal(QMainWindow):
                     left_skin_image, right_skin_image,
                     left_heatmap_image, right_heatmap_image,
                     self.left_image_original, self.right_image_original,
-                    self.last_directory
+                    self.last_directory, fecha_escaneo
                 )
                 QMessageBox.information(self, "Éxito", "Reporte PDF generado exitosamente.")
             except Exception as e:
@@ -515,3 +523,43 @@ class VentanaPrincipal(QMainWindow):
             self.showNormal()
         else:
             super().keyPressEvent(event)
+
+    def nuevo(self):
+        """
+        Reset the application state to allow new images to be scanned.
+        """
+        # Reset images
+        self.left_image_original = None
+        self.left_image_processed = None
+        self.right_image_original = None
+        self.right_image_processed = None
+
+        # Reset image labels to default background images or texts
+        # Left Image
+        bg_left_path = os.path.join('resources', 'bg_left.png')
+        if os.path.exists(bg_left_path):
+            pixmap_bg_left = QPixmap(bg_left_path)
+            pixmap_bg_left = pixmap_bg_left.scaled(
+                self.label_imagen_izquierda.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            self.label_imagen_izquierda.setPixmap(pixmap_bg_left)
+        else:
+            self.label_imagen_izquierda.setText("Pie Izquierdo")
+            self.label_imagen_izquierda.setFont(QFont(self.font_family, 16))
+            self.label_imagen_izquierda.setStyleSheet("color: #1d3557;")
+        
+        # Right Image
+        bg_right_path = os.path.join('resources', 'bg_right.png')
+        if os.path.exists(bg_right_path):
+            pixmap_bg_right = QPixmap(bg_right_path)
+            pixmap_bg_right = pixmap_bg_right.scaled(
+                self.label_imagen_derecha.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            self.label_imagen_derecha.setPixmap(pixmap_bg_right)
+        else:
+            self.label_imagen_derecha.setText("Pie Derecho")
+            self.label_imagen_derecha.setFont(QFont(self.font_family, 16))
+            self.label_imagen_derecha.setStyleSheet("color: #1d3557;")
+
+        # Disable 'Generar Reporte' button
+        self.boton_generar_reporte.setEnabled(False)
