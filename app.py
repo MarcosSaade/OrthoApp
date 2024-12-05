@@ -97,11 +97,11 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot with Scroll Areas
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_izquierda.setFixedSize(600, 600)  # Ensures square shape and bigger size
+        self.label_imagen_izquierda.setFixedSize(600, 700)  # Slightly taller than square
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_derecha.setFixedSize(600, 600)  # Ensures square shape and bigger size
+        self.label_imagen_derecha.setFixedSize(600, 700)  # Slightly taller than square
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -396,13 +396,21 @@ class VentanaPrincipal(QMainWindow):
         """
         Display the left foot image in the left QLabel.
         """
-        self.label_imagen_izquierda.setPixmap(pixmap)
+        # Scale the pixmap to fit within the label while maintaining aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.label_imagen_izquierda.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        self.label_imagen_izquierda.setPixmap(scaled_pixmap)
 
     def display_right_image(self, pixmap):
         """
         Display the right foot image in the right QLabel.
         """
-        self.label_imagen_derecha.setPixmap(pixmap)
+        # Scale the pixmap to fit within the label while maintaining aspect ratio
+        scaled_pixmap = pixmap.scaled(
+            self.label_imagen_derecha.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        self.label_imagen_derecha.setPixmap(scaled_pixmap)
 
     def resizeEvent(self, event):
         """
@@ -410,10 +418,10 @@ class VentanaPrincipal(QMainWindow):
         """
         if self.left_image_processed is not None:
             pixmap_left = convertir_cv_qt(self.left_image_processed)
-            self.label_imagen_izquierda.setPixmap(pixmap_left)
+            self.display_left_image(pixmap_left)
         if self.right_image_processed is not None:
             pixmap_right = convertir_cv_qt(self.right_image_processed)
-            self.label_imagen_derecha.setPixmap(pixmap_right)
+            self.display_right_image(pixmap_right)
         super().resizeEvent(event)
 
     def generar_reporte(self):
