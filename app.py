@@ -3,7 +3,7 @@ import os
 import cv2
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem, QSizePolicy
+    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSettings
@@ -25,7 +25,7 @@ class AspectRatioLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
-        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._pixmap = None
 
     def setPixmap(self, pixmap):
@@ -98,11 +98,11 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_izquierda.setFixedSize(600, 600)  # Reduced height to 600
+        self.label_imagen_izquierda.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_derecha.setFixedSize(600, 600)  # Reduced height to 600
+        self.label_imagen_derecha.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -168,7 +168,7 @@ class VentanaPrincipal(QMainWindow):
 
         # Buttons Layout
         botones_layout = QHBoxLayout()
-        botones_layout.setContentsMargins(0, 0, 0, 20)  # Reduced top and bottom margins
+        botones_layout.setContentsMargins(0, 0, 0, 0)
         botones_layout.addStretch()
         botones_layout.addWidget(self.boton_cargar_izquierdo)
         botones_layout.addWidget(self.boton_cargar_derecho)
@@ -183,10 +183,14 @@ class VentanaPrincipal(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addLayout(header_layout)
         main_layout.addLayout(imagenes_layout)
-        main_layout.addSpacerItem(spacer)  # Add spacer before buttons
+        main_layout.addItem(spacer)  # Add spacer to push buttons to the bottom
         main_layout.addLayout(botones_layout)
         main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
+        main_layout.setStretch(0, 0)  # Header
+        main_layout.setStretch(1, 1)  # Images
+        main_layout.setStretch(2, 0)  # Spacer
+        main_layout.setStretch(3, 0)  # Buttons
 
         # Set Central Widget
         contenedor = QWidget()
@@ -386,21 +390,15 @@ class VentanaPrincipal(QMainWindow):
         """
         Display the left foot image in the left QLabel.
         """
-        # Scale the pixmap to fit within the label while maintaining aspect ratio
-        scaled_pixmap = pixmap.scaled(
-            self.label_imagen_izquierda.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-        self.label_imagen_izquierda.setPixmap(scaled_pixmap)
+        # Set the pixmap; AspectRatioLabel handles scaling
+        self.label_imagen_izquierda.setPixmap(pixmap)
 
     def display_right_image(self, pixmap):
         """
         Display the right foot image in the right QLabel.
         """
-        # Scale the pixmap to fit within the label while maintaining aspect ratio
-        scaled_pixmap = pixmap.scaled(
-            self.label_imagen_derecha.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-        self.label_imagen_derecha.setPixmap(scaled_pixmap)
+        # Set the pixmap; AspectRatioLabel handles scaling
+        self.label_imagen_derecha.setPixmap(pixmap)
 
     def resizeEvent(self, event):
         """
