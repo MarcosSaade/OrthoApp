@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
     QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem
 )
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QPainter
 from PyQt5.QtCore import Qt, QSettings
 from utils import convertir_cv_qt, load_fonts
 from ui_components import PatientInfoDialog
@@ -20,7 +20,7 @@ TEST_MODE = True  # Set to True for testing (uploads images), False for producti
 
 class AspectRatioLabel(QLabel):
     """
-    Custom QLabel that maintains the aspect ratio of the pixmap.
+    Custom QLabel that maintains the aspect ratio of the pixmap without causing recursive resizing.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,17 +30,20 @@ class AspectRatioLabel(QLabel):
 
     def setPixmap(self, pixmap):
         self._pixmap = pixmap
-        super().setPixmap(self._scaled_pixmap())
+        self.update()  # Trigger a repaint
 
-    def resizeEvent(self, event):
+    def paintEvent(self, event):
+        super().paintEvent(event)
         if self._pixmap:
-            super().setPixmap(self._scaled_pixmap())
-        super().resizeEvent(event)
-
-    def _scaled_pixmap(self):
-        return self._pixmap.scaled(
-            self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.SmoothPixmapTransform)
+            scaled_pixmap = self._pixmap.scaled(
+                self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            # Calculate position to center the pixmap
+            x = (self.width() - scaled_pixmap.width()) / 2
+            y = (self.height() - scaled_pixmap.height()) / 2
+            painter.drawPixmap(int(x), int(y), scaled_pixmap)
 
 
 class VentanaPrincipal(QMainWindow):
@@ -98,11 +101,9 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_izquierda.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_derecha.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -404,12 +405,7 @@ class VentanaPrincipal(QMainWindow):
         """
         Override the resizeEvent to adjust the images when the window is resized.
         """
-        if self.left_image_processed is not None:
-            pixmap_left = convertir_cv_qt(self.left_image_processed)
-            self.display_left_image(pixmap_left)
-        if self.right_image_processed is not None:
-            pixmap_right = convertir_cv_qt(self.right_image_processed)
-            self.display_right_image(pixmap_right)
+        # No need to handle resizeEvent here as AspectRatioLabel handles it
         super().resizeEvent(event)
 
     def generar_reporte(self):
