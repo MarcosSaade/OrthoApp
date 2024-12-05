@@ -74,7 +74,7 @@ class VentanaPrincipal(QMainWindow):
         self.menu_bar = self.menuBar()
         self.crear_menu()
 
-        # Header Layout: Logo and Scanner Label
+        # Header Layout: Logo Only (Removed "Scanner" Label)
         header_layout = QVBoxLayout()
         header_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
 
@@ -91,26 +91,17 @@ class VentanaPrincipal(QMainWindow):
             self.label_logo.setFont(QFont(self.font_family, 14))  # Adjusted font size
             self.label_logo.setStyleSheet("color: #1d3557;")
 
-        # Scanner Label
-        self.label_scanner = QLabel("Scanner")
-        self.label_scanner.setAlignment(Qt.AlignCenter)
-        self.label_scanner.setFont(QFont(self.font_family, 24, QFont.Bold))
-        self.label_scanner.setStyleSheet("color: #1d3557;")
-
-        # Add logo and scanner label to header layout
+        # Add logo to header layout
         header_layout.addWidget(self.label_logo)
-        header_layout.addWidget(self.label_scanner)
 
         # Image Labels for Left and Right Foot with Scroll Areas
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_izquierda.setFixedHeight(300)  # Ensures ample vertical space
-        self.label_imagen_izquierda.setMinimumWidth(500)  # Prevents excessive horizontal shrinking
+        self.label_imagen_izquierda.setFixedSize(600, 600)  # Ensures square shape and bigger size
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        self.label_imagen_derecha.setFixedHeight(300)  # Ensures ample vertical space
-        self.label_imagen_derecha.setMinimumWidth(500)  # Prevents excessive horizontal shrinking
+        self.label_imagen_derecha.setFixedSize(600, 600)  # Ensures square shape and bigger size
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -148,7 +139,7 @@ class VentanaPrincipal(QMainWindow):
         imagenes_layout.addWidget(self.scroll_area_derecha)
         imagenes_layout.setStretch(0, 1)
         imagenes_layout.setStretch(1, 1)
-        imagenes_layout.setSpacing(20)
+        imagenes_layout.setSpacing(40)  # Increased spacing for better appearance
 
         # Buttons: Upload or Scan Left Foot, Upload or Scan Right Foot, Generate Report
         if TEST_MODE:
@@ -533,7 +524,7 @@ class VentanaPrincipal(QMainWindow):
 
     def keyPressEvent(self, event):
         """
-        Override keyPressEvent to allow exiting maximized mode with the Esc key.
+        Override keyPressEvent to allow exiting fullscreen mode with the Esc key.
         """
         if event.key() == Qt.Key_Escape:
             self.showNormal()
