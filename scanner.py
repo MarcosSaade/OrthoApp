@@ -28,46 +28,62 @@ def scan_image():
         # Get the scanner item
         scan_item = scanner.Items[1]  # Usually the first item
 
-        # Set properties
+        # Access scanner properties
         props = scan_item.Properties
 
+        # Function to set a property with desired value
+        def set_property(prop_id, desired_value, description):
+            if props.Exists(prop_id):
+                prop = props[prop_id]
+                min_val = prop.SubTypeMin
+                max_val = prop.SubTypeMax
+                # Clamp the desired value within the allowed range
+                value = min(max(desired_value, min_val), max_val)
+                prop.Value = value
+                print(f"{description} establecido a: {value} (Rango: {min_val} - {max_val})")
+            else:
+                print(f"El dispositivo no admite el ajuste de {description.lower()} (Property ID: {prop_id}).")
+
         # Set DataType to Color (PropertyID 4103)
-        if props.Exists(4103):
-            props[4103].Value = 1  # WIA_DATA_COLOR
+        DATA_TYPE_COLOR = 1  # WIA_DATA_COLOR
+        DATA_TYPE_GRAYSCALE = 0  # WIA_DATA_GRAYSCALE
+        DATA_TYPE_TEXT = 2  # WIA_DATA_TEXT
+        DATA_TYPE_RAW = 4  # WIA_DATA_RAW
+
+        DATA_TYPE_PROPERTY_ID = 4103  # WIA_IPA_DATATYPE
+        if props.Exists(DATA_TYPE_PROPERTY_ID):
+            props[DATA_TYPE_PROPERTY_ID].Value = DATA_TYPE_COLOR
+            print("Tipo de datos establecido a Color.")
         else:
             print("El dispositivo no admite el ajuste del tipo de datos a color.")
 
         # Set Resolution to 300 DPI (PropertyIDs 6147 and 6148)
-        if props.Exists(6147):  # Horizontal Resolution
-            props[6147].Value = 300
-        if props.Exists(6148):  # Vertical Resolution
-            props[6148].Value = 300
+        HORIZONTAL_RESOLUTION_ID = 6147  # WIA_IPS_XRES
+        VERTICAL_RESOLUTION_ID = 6148    # WIA_IPS_YRES
+        set_property(HORIZONTAL_RESOLUTION_ID, 300, "Resolución horizontal (DPI)")
+        set_property(VERTICAL_RESOLUTION_ID, 300, "Resolución vertical (DPI)")
 
-        # Set Brightness (PropertyID 6154)
-        if props.Exists(6154):
-            brightness_prop = props[6154]
-            brightness_min = brightness_prop.SubTypeMin
+        # Set Brightness to maximum
+        BRIGHTNESS_PROPERTY_ID = 6154  # WIA_IPS_BRIGHTNESS
+        if props.Exists(BRIGHTNESS_PROPERTY_ID):
+            brightness_prop = props[BRIGHTNESS_PROPERTY_ID]
             brightness_max = brightness_prop.SubTypeMax
-            # Ensure the value is within range
-            brightness_value = 1000
-            brightness_value = min(max(brightness_value, brightness_min), brightness_max)
-            brightness_prop.Value = brightness_value
+            set_property(BRIGHTNESS_PROPERTY_ID, brightness_max, "Brillo")
         else:
             print("El dispositivo no admite el ajuste de brillo.")
 
-        # Set Contrast (PropertyID 6155)
-        if props.Exists(6155):
-            contrast_prop = props[6155]
-            contrast_min = contrast_prop.SubTypeMin
+        # Set Contrast to 80% of maximum
+        CONTRAST_PROPERTY_ID = 6155  # WIA_IPS_CONTRAST
+        if props.Exists(CONTRAST_PROPERTY_ID):
+            contrast_prop = props[CONTRAST_PROPERTY_ID]
             contrast_max = contrast_prop.SubTypeMax
-            # Ensure the value is within range
-            contrast_value = 800
-            contrast_value = min(max(contrast_value, contrast_min), contrast_max)
-            contrast_prop.Value = contrast_value
+            contrast_value = int(contrast_max * 0.8)
+            set_property(CONTRAST_PROPERTY_ID, contrast_value, "Contraste")
         else:
             print("El dispositivo no admite el ajuste de contraste.")
 
         # Acquire image
+        print("Iniciando la adquisición de la imagen...")
         image = scan_item.Transfer()
 
         # Create a unique temporary filename
@@ -75,6 +91,7 @@ def scan_image():
         
         # Save the image
         image.SaveFile(temp_filename)
+        print(f"Imagen guardada temporalmente en: {temp_filename}")
         
         # Read the image using OpenCV
         scanned_image = cv2.imread(temp_filename)
@@ -83,6 +100,7 @@ def scan_image():
 
         # Delete the temp file
         os.unlink(temp_filename)
+        print("Archivo temporal eliminado.")
 
         # If TEST_SCAN is True, display the scanned image for debugging
         if TEST_SCAN:
