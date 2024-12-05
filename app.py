@@ -14,14 +14,10 @@ from pdf_report import generate_pdf_report
 from scanner import scan_image
 
 
-# Define TEST_MODE
 TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
 
 
 class AspectRatioLabel(QLabel):
-    """
-    Custom QLabel that maintains the aspect ratio of the pixmap without causing recursive resizing.
-    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
@@ -30,7 +26,7 @@ class AspectRatioLabel(QLabel):
 
     def setPixmap(self, pixmap):
         self._pixmap = pixmap
-        self.update()  # Trigger a repaint
+        self.update()
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -40,7 +36,6 @@ class AspectRatioLabel(QLabel):
             scaled_pixmap = self._pixmap.scaled(
                 self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
-            # Calculate position to center the pixmap
             x = (self.width() - scaled_pixmap.width()) / 2
             y = (self.height() - scaled_pixmap.height()) / 2
             painter.drawPixmap(int(x), int(y), scaled_pixmap)
@@ -78,27 +73,7 @@ class VentanaPrincipal(QMainWindow):
         self.menu_bar = self.menuBar()
         self.crear_menu()
 
-        # Header Layout: Logo Only (Removed "Scanner" Label)
-        header_layout = QVBoxLayout()
-        header_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
-
-        # Clinic Logo (Smaller Size)
-        self.label_logo = QLabel()
-        self.label_logo.setAlignment(Qt.AlignCenter)
-        logo_path = os.path.join('resources', 'logo.png')  # Ensure 'logo.png' exists in 'resources' folder
-        if os.path.exists(logo_path):
-            pixmap_logo = QPixmap(logo_path)
-            pixmap_logo = pixmap_logo.scaledToHeight(60, Qt.SmoothTransformation)  # Further reduced height to 60
-            self.label_logo.setPixmap(pixmap_logo)
-        else:
-            self.label_logo.setText("Logo")
-            self.label_logo.setFont(QFont(self.font_family, 14))  # Adjusted font size
-            self.label_logo.setStyleSheet("color: #1d3557;")
-
-        # Add logo to header layout
-        header_layout.addWidget(self.label_logo)
-
-        # Image Labels for Left and Right Foot
+        # Image Labels
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
 
@@ -124,15 +99,15 @@ class VentanaPrincipal(QMainWindow):
             self.label_imagen_derecha.setFont(QFont(self.font_family, 16))
             self.label_imagen_derecha.setStyleSheet("color: #1d3557;")
 
-        # Images Layout (Side by Side)
+        # Images Layout
         imagenes_layout = QHBoxLayout()
         imagenes_layout.addWidget(self.label_imagen_izquierda)
         imagenes_layout.addWidget(self.label_imagen_derecha)
         imagenes_layout.setStretch(0, 1)
         imagenes_layout.setStretch(1, 1)
-        imagenes_layout.setSpacing(40)  # Increased spacing for better appearance
+        imagenes_layout.setSpacing(40)
 
-        # Buttons: Upload or Scan Left Foot, Upload or Scan Right Foot, Generate Report
+        # Buttons
         if TEST_MODE:
             self.boton_cargar_izquierdo = QPushButton("Cargar Pie Izquierdo")
             self.boton_cargar_izquierdo.clicked.connect(self.cargar_imagen_izquierda)
@@ -177,54 +152,45 @@ class VentanaPrincipal(QMainWindow):
         botones_layout.addStretch()
         botones_layout.setSpacing(40)
 
-        # Spacer to push buttons to the bottom
+        # Spacer
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         # Main Layout
         main_layout = QVBoxLayout()
-        main_layout.addLayout(header_layout)
+        # Removed header_layout
         main_layout.addLayout(imagenes_layout)
-        main_layout.addItem(spacer)  # Add spacer to push buttons to the bottom
+        main_layout.addItem(spacer)
         main_layout.addLayout(botones_layout)
         main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
-        main_layout.setStretch(0, 0)  # Header
-        main_layout.setStretch(1, 1)  # Images
-        main_layout.setStretch(2, 0)  # Spacer
-        main_layout.setStretch(3, 0)  # Buttons
+        main_layout.setStretch(0, 1)
+        main_layout.setStretch(1, 0)
+        main_layout.setStretch(2, 0)
 
-        # Set Central Widget
         contenedor = QWidget()
         contenedor.setLayout(main_layout)
         self.setCentralWidget(contenedor)
 
     def crear_menu(self):
-        # Menu Bar
         self.menu_bar = self.menuBar()
-
-        # Nuevo Action
         nuevo_action = QAction("Nuevo", self)
         nuevo_action.triggered.connect(self.nuevo)
         self.menu_bar.addAction(nuevo_action)
 
-        # Help Menu
         help_menu = self.menu_bar.addMenu("Ayuda")
 
-        # Help Action
         help_action = QAction("Instrucciones", self)
         help_action.triggered.connect(self.show_help)
         help_menu.addAction(help_action)
 
-        # About Action
         about_action = QAction("Acerca de", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
     def aplicar_estilos(self):
-        # Style Sheet for the application
         estilo = """
         QMainWindow {
-            background-color: #e8eff5;  /* Retained blue background */
+            background-color: #e8eff5;
         }
         QLabel#label_titulo {
             color: #1d3557;
@@ -262,9 +228,6 @@ class VentanaPrincipal(QMainWindow):
         self.setStyleSheet(estilo)
 
     def cargar_imagen_izquierda(self):
-        """
-        Upload the left foot image using a file dialog.
-        """
         opciones = QFileDialog.Options()
         ruta_archivo, _ = QFileDialog.getOpenFileName(
             self, "Seleccionar Imagen del Pie Izquierdo", self.last_directory,
@@ -272,34 +235,26 @@ class VentanaPrincipal(QMainWindow):
         )
         if ruta_archivo:
             try:
-                # Update last directory
                 self.last_directory = os.path.dirname(ruta_archivo)
                 self.settings.setValue("last_directory", self.last_directory)
 
-                # Load original image
                 self.left_image_original = cv2.imread(ruta_archivo)
                 if self.left_image_original is None:
                     raise Exception("No se pudo cargar la imagen.")
 
-                # Process image with recoloring (heatmap)
                 self.left_image_processed = procesar_imagen(
                     ruta_archivo, None, recolor=True, foot_side="left"
                 )
 
-                # Convert to QPixmap and display on the left side
                 pixmap = convertir_cv_qt(self.left_image_processed)
                 self.display_left_image(pixmap)
 
-                # Check if both images are loaded to enable 'Generar Reporte' button
                 if self.left_image_original is not None and self.right_image_original is not None:
                     self.boton_generar_reporte.setEnabled(True)
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo procesar la imagen.\n{str(e)}")
 
     def cargar_imagen_derecha(self):
-        """
-        Upload the right foot image using a file dialog.
-        """
         opciones = QFileDialog.Options()
         ruta_archivo, _ = QFileDialog.getOpenFileName(
             self, "Seleccionar Imagen del Pie Derecho", self.last_directory,
@@ -307,112 +262,78 @@ class VentanaPrincipal(QMainWindow):
         )
         if ruta_archivo:
             try:
-                # Update last directory
                 self.last_directory = os.path.dirname(ruta_archivo)
                 self.settings.setValue("last_directory", self.last_directory)
 
-                # Load original image
                 self.right_image_original = cv2.imread(ruta_archivo)
                 if self.right_image_original is None:
                     raise Exception("No se pudo cargar la imagen.")
 
-                # Process image with recoloring (heatmap)
                 self.right_image_processed = procesar_imagen(
                     ruta_archivo, None, recolor=True, foot_side="right"
                 )
 
-                # Convert to QPixmap and display on the right side
                 pixmap = convertir_cv_qt(self.right_image_processed)
                 self.display_right_image(pixmap)
 
-                # Check if both images are loaded to enable 'Generar Reporte' button
                 if self.left_image_original is not None and self.right_image_original is not None:
                     self.boton_generar_reporte.setEnabled(True)
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo procesar la imagen.\n{str(e)}")
 
     def escanear_imagen_izquierda(self):
-        """
-        Scan the left foot image using the scanning functionality.
-        """
         try:
-            # Scan the image using scan_image function
             self.left_image_original = scan_image()
             if self.left_image_original is None:
                 raise Exception("No se pudo escanear la imagen.")
 
-            # Rotate the image 180 degrees if necessary
             self.left_image_original = cv2.rotate(self.left_image_original, cv2.ROTATE_180)
 
-            # Process the image with recoloring (heatmap)
             self.left_image_processed = procesar_imagen(
                 None, None, recolor=True, image=self.left_image_original, foot_side="left"
             )
 
-            # Convert to QPixmap and display on the left side
             pixmap = convertir_cv_qt(self.left_image_processed)
             self.display_left_image(pixmap)
 
-            # Check if both images are loaded to enable 'Generar Reporte' button
             if self.left_image_original is not None and self.right_image_original is not None:
                 self.boton_generar_reporte.setEnabled(True)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo escanear o procesar la imagen.\n{str(e)}")
 
     def escanear_imagen_derecha(self):
-        """
-        Scan the right foot image using the scanning functionality.
-        """
         try:
-            # Scan the image using scan_image function
             self.right_image_original = scan_image()
             if self.right_image_original is None:
                 raise Exception("No se pudo escanear la imagen.")
 
-            # Rotate the image 180 degrees if necessary
             self.right_image_original = cv2.rotate(self.right_image_original, cv2.ROTATE_180)
 
-            # Process the image with recoloring (heatmap)
             self.right_image_processed = procesar_imagen(
                 None, None, recolor=True, image=self.right_image_original, foot_side="right"
             )
 
-            # Convert to QPixmap and display on the right side
             pixmap = convertir_cv_qt(self.right_image_processed)
             self.display_right_image(pixmap)
 
-            # Check if both images are loaded to enable 'Generar Reporte' button
             if self.left_image_original is not None and self.right_image_original is not None:
                 self.boton_generar_reporte.setEnabled(True)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo escanear o procesar la imagen.\n{str(e)}")
 
     def display_left_image(self, pixmap):
-        """
-        Display the left foot image in the left QLabel.
-        """
-        # Set the pixmap; AspectRatioLabel handles scaling
         self.label_imagen_izquierda.setPixmap(pixmap)
 
     def display_right_image(self, pixmap):
-        """
-        Display the right foot image in the right QLabel.
-        """
-        # Set the pixmap; AspectRatioLabel handles scaling
         self.label_imagen_derecha.setPixmap(pixmap)
 
     def generar_reporte(self):
-        """
-        Generate the PDF report using the processed images and patient information.
-        """
         if self.left_image_original is None or self.right_image_original is None:
             QMessageBox.warning(self, "Advertencia", "Debe cargar o escanear las imágenes de ambos pies.")
             return
 
-        # Show input dialog to collect patient information
         dialog = PatientInfoDialog()
         if dialog.exec_() == QDialog.Accepted:
-            # Get patient info
             paciente = dialog.paciente_edit.text()
             telefono = dialog.telefono_edit.text()
             longitud_pie = dialog.longitud_edit.text()
@@ -424,10 +345,8 @@ class VentanaPrincipal(QMainWindow):
             order_number = dialog.order_number_edit.text()
             observaciones = dialog.observaciones_edit.toPlainText()
 
-            # Process images
-            ruta_logotipo = os.path.join('resources', 'logo_square.png')  # Updated logo path
+            ruta_logotipo = os.path.join('resources', 'logo_square.png')
 
-            # Process left images
             left_skin_image = procesar_imagen(
                 None, ruta_logotipo, recolor=False, image=self.left_image_original, foot_side="left"
             )
@@ -435,7 +354,6 @@ class VentanaPrincipal(QMainWindow):
                 None, ruta_logotipo, recolor=True, image=self.left_image_original, foot_side="left"
             )
 
-            # Process right images
             right_skin_image = procesar_imagen(
                 None, ruta_logotipo, recolor=False, image=self.right_image_original, foot_side="right"
             )
@@ -443,7 +361,6 @@ class VentanaPrincipal(QMainWindow):
                 None, ruta_logotipo, recolor=True, image=self.right_image_original, foot_side="right"
             )
 
-            # Generate PDF report
             try:
                 generate_pdf_report(
                     paciente, telefono, order_number, sucursal, taller,
@@ -457,26 +374,21 @@ class VentanaPrincipal(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo generar el reporte PDF.\n{str(e)}")
         else:
-            # User cancelled the dialog
             return
 
     def show_help(self):
-        """
-        Display the help instructions.
-        """
         help_text = (
             "Instrucciones de Uso:\n\n"
-            f"1. {'Cargar' if TEST_MODE else 'Escanear'} Pie Izquierdo: {'Seleccione una imagen del pie izquierdo.' if TEST_MODE else 'Escanee la imagen del pie izquierdo.'}\n"
-            f"2. {'Cargar' if TEST_MODE else 'Escanear'} Pie Derecho: {'Seleccione una imagen del pie derecho.' if TEST_MODE else 'Escanee la imagen del pie derecho.'}\n"
+            f"1. {'Cargar' if TEST_MODE else 'Escanear'} Pie Izquierdo: "
+            f"{'Seleccione una imagen del pie izquierdo.' if TEST_MODE else 'Escanee la imagen del pie izquierdo.'}\n"
+            f"2. {'Cargar' if TEST_MODE else 'Escanear'} Pie Derecho: "
+            f"{'Seleccione una imagen del pie derecho.' if TEST_MODE else 'Escanee la imagen del pie derecho.'}\n"
             "3. Generar Reporte: Genere un reporte PDF con las imágenes procesadas.\n\n"
             "Presione 'Esc' para salir del modo de pantalla maximizada."
         )
         QMessageBox.information(self, "Ayuda", help_text)
 
     def show_about(self):
-        """
-        Display the about information.
-        """
         about_text = (
             "Orto Flex Scanner\n\n"
             "Versión 1.0\n\n"
@@ -486,48 +398,30 @@ class VentanaPrincipal(QMainWindow):
         QMessageBox.information(self, "Acerca de", about_text)
 
     def load_preferences(self):
-        """
-        Load user preferences like window size and last directory.
-        """
         geometry = self.settings.value("geometry")
         if geometry:
             self.restoreGeometry(geometry)
 
     def save_preferences(self):
-        """
-        Save user preferences like window size and last directory.
-        """
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("last_directory", self.last_directory)
 
     def closeEvent(self, event):
-        """
-        Override closeEvent to save user preferences.
-        """
         self.save_preferences()
         event.accept()
 
     def keyPressEvent(self, event):
-        """
-        Override keyPressEvent to allow exiting fullscreen mode with the Esc key.
-        """
         if event.key() == Qt.Key_Escape:
             self.showNormal()
         else:
             super().keyPressEvent(event)
 
     def nuevo(self):
-        """
-        Reset the application state to allow new images to be scanned.
-        """
-        # Reset images
         self.left_image_original = None
         self.left_image_processed = None
         self.right_image_original = None
         self.right_image_processed = None
 
-        # Reset image labels to default background images or texts
-        # Left Image
         bg_left_path = os.path.join('resources', 'bg_left.png')
         if os.path.exists(bg_left_path):
             pixmap_bg_left = QPixmap(bg_left_path)
@@ -537,7 +431,6 @@ class VentanaPrincipal(QMainWindow):
             self.label_imagen_izquierda.setFont(QFont(self.font_family, 16))
             self.label_imagen_izquierda.setStyleSheet("color: #1d3557;")
 
-        # Right Image
         bg_right_path = os.path.join('resources', 'bg_right.png')
         if os.path.exists(bg_right_path):
             pixmap_bg_right = QPixmap(bg_right_path)
@@ -547,7 +440,6 @@ class VentanaPrincipal(QMainWindow):
             self.label_imagen_derecha.setFont(QFont(self.font_family, 16))
             self.label_imagen_derecha.setStyleSheet("color: #1d3557;")
 
-        # Disable 'Generar Reporte' button
         self.boton_generar_reporte.setEnabled(False)
 
 
@@ -555,7 +447,6 @@ def main():
     import sys
     app = QApplication(sys.argv)
     ventana = VentanaPrincipal()
-    # ventana.show()  # Removed because showFullScreen is called in the __init__
     sys.exit(app.exec_())
 
 

@@ -8,7 +8,6 @@ from utils import load_fonts
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # Load Roboto Font
     font_family = load_fonts()
     app.setFont(QFont(font_family, 12))
     ventana = VentanaPrincipal()
