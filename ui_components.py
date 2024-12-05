@@ -1,11 +1,9 @@
 # ui_components.py
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QTextEdit, QDialogButtonBox,
-    QDateEdit, QLabel, QVBoxLayout, QHBoxLayout, QComboBox
+    QDateEdit, QComboBox
 )
-from PyQt5.QtCore import Qt, QDate
-from PyQt5.QtGui import QFont
-from utils import convertir_cv_qt
+from PyQt5.QtCore import QDate
 import datetime
 
 
@@ -29,6 +27,11 @@ class PatientInfoDialog(QDialog):
         self.material_edit = QComboBox()
         self.material_edit.addItems(["Pelite", "Plaztasote", "Insert", "Biomecánica", "Otro"])  # Added "Otro"
         self.material_edit.setCurrentText("Pelite")  # Set "Pelite" as the default selection
+
+        # Fecha de Escaneo
+        self.fecha_escaneo_edit = QDateEdit()
+        self.fecha_escaneo_edit.setDate(QDate.currentDate())
+        self.fecha_escaneo_edit.setCalendarPopup(True)
 
         # Fecha de Entrega
         self.date_entrega_edit = QDateEdit()
@@ -58,6 +61,7 @@ class PatientInfoDialog(QDialog):
         layout.addRow("Teléfono:", self.telefono_edit)
         layout.addRow("Longitud del Pie:", self.longitud_edit)
         layout.addRow("Material:", self.material_edit)
+        layout.addRow("Fecha de Escaneo:", self.fecha_escaneo_edit)
         layout.addRow("Fecha de Entrega:", self.date_entrega_edit)
         layout.addRow("Sucursal:", self.sucursal_edit)
         layout.addRow("Taller:", self.taller_edit)
@@ -74,22 +78,11 @@ class PatientInfoDialog(QDialog):
 
     def calculate_next_delivery_date(self):
         today = datetime.date.today()
-        weekday = today.weekday()  # Monday is 0 and Sunday is 6
+        target_weekday = 1  # Tuesday (Monday is 0)
 
-        if weekday <= 2:  # Monday, Tuesday, Wednesday
-            target_weekday = 1  # Tuesday
-        else:
-            target_weekday = 0  # Monday
-
-        if target_weekday > weekday:
-            days_ahead = target_weekday - weekday
-        else:
-            days_ahead = 7 - weekday + target_weekday
-
-        # If today is Tuesday, and target_weekday is Tuesday, days_ahead should be 7
-        if target_weekday == weekday and weekday == 1:
+        days_ahead = (target_weekday - today.weekday() + 7) % 7
+        if days_ahead == 0:
             days_ahead = 7
 
         entrega_date = today + datetime.timedelta(days=days_ahead)
-
         return entrega_date
