@@ -3,7 +3,7 @@ import os
 import cv2
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem
+    QWidget, QMessageBox, QSizePolicy, QAction, QDialog
 )
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QSettings
@@ -12,6 +12,7 @@ from ui_components import PatientInfoDialog
 from image_processing import procesar_imagen
 from pdf_report import generate_pdf_report
 from scanner import scan_image
+
 
 # Define TEST_MODE
 TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
@@ -24,7 +25,7 @@ class AspectRatioLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self._pixmap = None
 
     def setPixmap(self, pixmap):
@@ -45,39 +46,28 @@ class AspectRatioLabel(QLabel):
 class VentanaPrincipal(QMainWindow):
     def __init__(self):
         super().__init__()
-        try:
-            self.setWindowTitle("Orto-Flex Scanner")
+        self.setWindowTitle("Orto-Flex Scanner")
 
-            # Load user preferences
-            self.settings = QSettings("OrthoFlex", "ScannerApp")
-            self.load_preferences()
+        # Load user preferences
+        self.settings = QSettings("OrthoFlex", "ScannerApp")
+        self.load_preferences()
 
-            # Initialize image variables
-            self.left_image_original = None
-            self.left_image_processed = None
-            self.right_image_original = None
-            self.right_image_processed = None
-            self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
+        # Initialize image variables
+        self.left_image_original = None
+        self.left_image_processed = None
+        self.right_image_original = None
+        self.right_image_processed = None
+        self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
 
-            print("Initialized VentanaPrincipal with attributes:")
-            print(f"left_image_original: {self.left_image_original}")
-            print(f"left_image_processed: {self.left_image_processed}")
-            print(f"right_image_original: {self.right_image_original}")
-            print(f"right_image_processed: {self.right_image_processed}")
+        # Load Roboto Font
+        self.font_family = load_fonts()
 
-            # Load Roboto Font
-            self.font_family = load_fonts()
+        # Initialize UI components
+        self.inicializar_componentes()
+        self.aplicar_estilos()
 
-            # Initialize UI components
-            self.inicializar_componentes()
-            self.aplicar_estilos()
-
-            # Show application in fullscreen
-            self.showFullScreen()
-        except Exception as e:
-            print(f"Exception during VentanaPrincipal initialization: {e}")
-            QMessageBox.critical(self, "Error", f"Error during initialization: {str(e)}")
-
+        # Show application in fullscreen
+        self.showFullScreen()
 
     def inicializar_componentes(self):
         # Menu Bar
@@ -107,15 +97,11 @@ class VentanaPrincipal(QMainWindow):
         # Image Labels for Left and Right Foot
         self.label_imagen_izquierda = AspectRatioLabel()
         self.label_imagen_izquierda.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        # Removed fixed size and set size policy
-        # self.label_imagen_izquierda.setFixedSize(600, 700)  # Removed
-        self.label_imagen_izquierda.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.label_imagen_izquierda.setFixedSize(600, 700)  # Slightly taller than square
 
         self.label_imagen_derecha = AspectRatioLabel()
         self.label_imagen_derecha.setStyleSheet("background-color: #FFFFFF; border: 1px solid #ccc;")
-        # Removed fixed size and set size policy
-        # self.label_imagen_derecha.setFixedSize(600, 700)  # Removed
-        self.label_imagen_derecha.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.label_imagen_derecha.setFixedSize(600, 700)  # Slightly taller than square
 
         # Load initial background images
         bg_left_path = os.path.join('resources', 'bg_left.png')
@@ -163,24 +149,21 @@ class VentanaPrincipal(QMainWindow):
             self.boton_cargar_derecho.clicked.connect(self.escanear_imagen_derecha)
             self.boton_cargar_derecho.setToolTip("Escanear el pie derecho")
 
-        # Set responsive sizes instead of fixed sizes
-        self.boton_cargar_izquierdo.setMinimumSize(150, 40)
-        self.boton_cargar_derecho.setMinimumSize(150, 40)
+        self.boton_cargar_izquierdo.setFixedSize(200, 50)
+        self.boton_cargar_izquierdo.setFont(QFont(self.font_family, 14))
+        self.boton_cargar_izquierdo.setObjectName('boton_cargar')
+
+        self.boton_cargar_derecho.setFixedSize(200, 50)
+        self.boton_cargar_derecho.setFont(QFont(self.font_family, 14))
+        self.boton_cargar_derecho.setObjectName('boton_cargar')
+
         self.boton_generar_reporte = QPushButton("Generar Reporte")
         self.boton_generar_reporte.clicked.connect(self.generar_reporte)
-        self.boton_generar_reporte.setMinimumSize(150, 40)
+        self.boton_generar_reporte.setFixedSize(200, 50)
         self.boton_generar_reporte.setToolTip("Generar reporte PDF")
+        self.boton_generar_reporte.setFont(QFont(self.font_family, 14))
         self.boton_generar_reporte.setEnabled(False)
-
-        # Apply font to buttons
-        buttons = [self.boton_cargar_izquierdo, self.boton_cargar_derecho, self.boton_generar_reporte]
-        for button in buttons:
-            button.setFont(QFont(self.font_family, 14))
-            # Ensure buttons have the appropriate object names for styling
-            if button == self.boton_generar_reporte:
-                button.setObjectName('boton_generar_reporte')
-            else:
-                button.setObjectName('boton_cargar')
+        self.boton_generar_reporte.setObjectName('boton_generar_reporte')
 
         # Buttons Layout
         botones_layout = QHBoxLayout()
@@ -196,7 +179,6 @@ class VentanaPrincipal(QMainWindow):
         main_layout = QVBoxLayout()
         main_layout.addLayout(header_layout)
         main_layout.addLayout(imagenes_layout)
-        main_layout.addStretch()  # Add stretch to push buttons to the bottom
         main_layout.addLayout(botones_layout)
         main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
@@ -587,3 +569,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Hello
