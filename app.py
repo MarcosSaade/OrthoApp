@@ -224,7 +224,7 @@ class VentanaPrincipal(QMainWindow):
         # Style Sheet for the application
         estilo = """
         QMainWindow {
-            background-color: #e8eff5;  /* Changed to #e8eff5 */
+            background-color: #e8eff5;  /* Retained blue background */
         }
         QLabel#label_titulo {
             color: #1d3557;
@@ -400,37 +400,6 @@ class VentanaPrincipal(QMainWindow):
         """
         # Set the pixmap; AspectRatioLabel handles scaling
         self.label_imagen_derecha.setPixmap(pixmap)
-
-    def resizeEvent(self, event):
-        """
-        Override the resizeEvent to adjust the images when the window is resized
-        and print the aspect ratio and size of image boxes.
-        """
-        super().resizeEvent(event)
-        self.print_image_box_info()
-
-    def showEvent(self, event):
-        """
-        Override the showEvent to print the aspect ratio and size of image boxes when the window is shown.
-        """
-        super().showEvent(event)
-        self.print_image_box_info()
-
-    def print_image_box_info(self):
-        """
-        Print the size and aspect ratio of the image display boxes.
-        """
-        left_size = self.label_imagen_izquierda.size()
-        right_size = self.label_imagen_derecha.size()
-
-        # Avoid division by zero
-        left_aspect_ratio = left_size.width() / left_size.height() if left_size.height() != 0 else 0
-        right_aspect_ratio = right_size.width() / right_size.height() if right_size.height() != 0 else 0
-
-        print(f"Left Image Box - Size: {left_size.width()}x{left_size.height()} pixels, "
-              f"Aspect Ratio: {left_aspect_ratio:.2f}")
-        print(f"Right Image Box - Size: {right_size.width()}x{right_size.height()} pixels, "
-              f"Aspect Ratio: {right_aspect_ratio:.2f}")
 
     def generar_reporte(self):
         """
