@@ -149,17 +149,17 @@ def generate_pdf_report(
         fecha_escaneo_formatted = format_date_spanish(fecha_escaneo)
 
         patient_info_left = f"""
-        <b>Sucursal:</b> {sucursal}<br/>
-        <b>Taller:</b> {taller}<br/>
-        <b>Fecha de Escaneo:</b> {fecha_escaneo_formatted}<br/>
-        <b>Fecha de Entrega:</b> {entrega_date_formatted}<br/>
-        """
-
-        patient_info_right = f"""
         <b>Paciente:</b> {paciente}<br/>
         <b>Teléfono:</b> {telefono}<br/>
         <b>Longitud del Pie:</b> {longitud_pie}<br/>
         <b>No. Orden:</b> {order_number}<br/>
+        """
+
+        patient_info_right = f"""
+        <b>Sucursal:</b> {sucursal}<br/>
+        <b>Taller:</b> {taller}<br/>
+        <b>Fecha de Escaneo:</b> {fecha_escaneo_formatted}<br/>
+        <b>Fecha de Entrega:</b> {entrega_date_formatted}<br/>
         """
 
         data_patient_info = [
