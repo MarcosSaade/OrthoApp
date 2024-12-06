@@ -10,7 +10,7 @@ class PatientInfoDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Información del Paciente")
-        self.setFixedSize(400, 650)  # Increased height to accommodate additional input
+        self.setFixedSize(400, 700)
         layout = QFormLayout()
 
         # Initialize widgets
@@ -37,6 +37,7 @@ class PatientInfoDialog(QDialog):
         entrega_date = self.calculate_next_delivery_date()
         self.date_entrega_edit.setDate(QDate(entrega_date.year, entrega_date.month, entrega_date.day))
         self.date_entrega_edit.setCalendarPopup(True)
+        self.date_entrega_edit.setEnabled(True)
 
         self.sucursal_edit = QComboBox()
         self.sucursal_edit.addItems(["Interlomas", "Del Valle"])
@@ -89,52 +90,55 @@ class PatientInfoDialog(QDialog):
         if self.material_edit.currentText() == "Otro":
             custom_material = self.custom_material_edit.text().strip()
             if not custom_material:
-                # Show an error message if custom input is empty
                 QMessageBox.warning(self, "Entrada requerida", "Por favor, ingrese el material.")
-                return  # Prevent dialog from closing
+                return
             self.material_value = custom_material
         else:
             self.material_value = self.material_edit.currentText()
-        
-        # Similarly, handle taller_value if needed (optional)
-        # For example:
-        # if self.taller_edit.currentText() == "Otro":
-        #     # Handle custom taller input
-        #     pass
-        # else:
-        #     self.taller_value = self.taller_edit.currentText()
 
-        # You can handle other data here or pass them to parent as needed
+        self.fecha_entrega = self.date_entrega_edit.date().toPyDate()
+
         super().accept()
 
     def get_material(self):
         """Retrieve the value of material."""
         return self.material_value
 
+    def get_fecha_entrega(self):
+        """Retrieve the selected delivery date."""
+        return self.fecha_entrega
+
     def calculate_next_delivery_date(self):
         now = datetime.datetime.now()
         today = now.date()
-        current_weekday = now.weekday()  # Monday is 0
+        current_weekday = now.weekday()
         current_time = now.time()
         cutoff_time = datetime.time(12, 30)
 
+        # Determine the effective day based on current day and time
+        effective_day = today
         if current_weekday == 0 and current_time < cutoff_time:
-            target_weekday = 4  # Friday
-            days_ahead = (target_weekday - current_weekday) % 7
-            if days_ahead == 0:
-                days_ahead = 7
-            entrega_date = today + datetime.timedelta(days=days_ahead)
+            # Monday before 12:30 PM, treat as Sunday
+            effective_day = today - datetime.timedelta(days=1)
         elif current_weekday == 3 and current_time < cutoff_time:
-            target_weekday = 1  # Tuesday
-            days_ahead = (target_weekday - current_weekday + 7) % 7
-            if days_ahead <= 0:
-                days_ahead += 7
-            entrega_date = today + datetime.timedelta(days=days_ahead)
+            # Thursday before 12:30 PM, treat as Wednesday
+            effective_day = today - datetime.timedelta(days=1)
         else:
-            target_weekday = 1  # Tuesday
-            days_ahead = (target_weekday - current_weekday + 7) % 7
-            if days_ahead == 0:
-                days_ahead = 7
-            entrega_date = today + datetime.timedelta(days=days_ahead)
+            # Otherwise, use today
+            effective_day = today
 
+        effective_weekday = effective_day.weekday()
+
+        # Determine target weekday based on effective day
+        if effective_weekday in [0, 1, 2]:
+            target_weekday = 1 
+        else:
+            target_weekday = 4
+
+        # Calculate the number of days ahead
+        days_ahead = target_weekday - effective_weekday
+        if days_ahead <= 0:
+            days_ahead += 7
+
+        entrega_date = effective_day + datetime.timedelta(days=days_ahead)
         return entrega_date

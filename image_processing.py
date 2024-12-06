@@ -2,7 +2,6 @@
 
 import cv2
 import numpy as np
-import os
 
 def procesar_imagen(ruta, ruta_logotipo, recolor=True, image=None, foot_side="right"):
     if image is not None:

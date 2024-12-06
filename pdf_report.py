@@ -19,12 +19,18 @@ def sanitize_filename(name):
 
 def generate_pdf_report(
     paciente, telefono, order_number, sucursal, taller,
-    longitud_pie, material, entrega_date, observaciones,
+    longitud_pie, material, observaciones,
     left_skin_image, right_skin_image,
     left_heatmap_image, right_heatmap_image,
     left_original_image, right_original_image,
-    last_directory, fecha_escaneo
+    last_directory, fecha_escaneo,
+    fecha_entrega  # New parameter for delivery date
 ):
+    # Use the provided delivery date instead of calculating it here
+    entrega_date = fecha_entrega.strftime("%d/%m/%Y")
+    entrega_date_formatted = format_date_spanish(entrega_date)
+    fecha_escaneo_formatted = format_date_spanish(fecha_escaneo)
+
     default_filename = "Reporte.pdf"
     if paciente and order_number:
         safe_paciente = sanitize_filename(paciente).replace(' ', '_')
@@ -121,9 +127,6 @@ def generate_pdf_report(
             return date_str
 
     def create_patient_info_table():
-        entrega_date_formatted = format_date_spanish(entrega_date)
-        fecha_escaneo_formatted = format_date_spanish(fecha_escaneo)
-
         patient_info_left = f"""
         <b>Paciente:</b> {paciente}<br/>
         <b>Teléfono:</b> {telefono}<br/>
@@ -181,7 +184,6 @@ def generate_pdf_report(
 
         logo_resized = cv2.resize(logo, (logo_width, logo_height), interpolation=cv2.INTER_AREA)
 
-        # Adjusted the vertical placement to bring the logos completely down to the bottom
         if position == 'bottom_right':
             x = w_img - logo_width - 60
             y = h_img - logo_height
@@ -192,18 +194,18 @@ def generate_pdf_report(
             x = 10
             y = 10
 
-        if x < 0 or y < 0 or x+logo_width > w_img or y+logo_height > h_img:
+        if x < 0 or y < 0 or x + logo_width > w_img or y + logo_height > h_img:
             return imagen
 
         if logo_resized.shape[2] == 4:
             alpha_logo = logo_resized[:, :, 3] / 255.0
             for c in range(0, 3):
-                imagen[y:y+logo_height, x:x+logo_width, c] = (
+                imagen[y:y + logo_height, x:x + logo_width, c] = (
                     alpha_logo * logo_resized[:, :, c] +
-                    (1 - alpha_logo) * imagen[y:y+logo_height, x:x+logo_width, c]
+                    (1 - alpha_logo) * imagen[y:y + logo_height, x:x + logo_width, c]
                 )
         else:
-            imagen[y:y+logo_height, x:x+logo_width] = logo_resized
+            imagen[y:y + logo_height, x:x + logo_width] = logo_resized
 
         return imagen
 
@@ -337,3 +339,39 @@ def generate_pdf_report(
         elements.append(Spacer(1, 24))
 
     doc.build(elements)
+
+# Helper function moved outside to allow usage before its definition
+def format_date_spanish(date_str):
+    day_names = {
+        0: "Lunes",
+        1: "Martes",
+        2: "Miércoles",
+        3: "Jueves",
+        4: "Viernes",
+        5: "Sábado",
+        6: "Domingo"
+    }
+
+    month_names = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre"
+    }
+
+    try:
+        day, month, year = map(int, date_str.split('/'))
+        date_obj = datetime.date(year, month, day)
+        weekday = day_names[date_obj.weekday()]
+        month_name = month_names[month]
+        return f"{weekday} {day} de {month_name} de {year}"
+    except:
+        return date_str

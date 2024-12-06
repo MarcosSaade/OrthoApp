@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
     QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem
 )
-from PyQt5.QtGui import QPixmap, QFont, QPainter
+from PyQt5.QtGui import QPixmap, QFont, QPainter, QIcon
 from PyQt5.QtCore import Qt, QSettings
 from utils import convertir_cv_qt, load_fonts
 from ui_components import PatientInfoDialog
@@ -14,7 +14,7 @@ from pdf_report import generate_pdf_report
 from scanner import scan_image
 
 
-TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
+TEST_MODE = False  # Set to True for testing (uploads images), False for production (scans images)
 
 
 class AspectRatioLabel(QLabel):
@@ -45,6 +45,13 @@ class VentanaPrincipal(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Orto-Flex Scanner")
+        
+        # Set the window icon
+        icon_path = os.path.join('resources', 'icon.ico')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        else:
+            print(f"Icon file not found at {icon_path}. Using default icon.")
 
         # Initialize image variables
         self.left_image_original = None
@@ -452,3 +459,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
