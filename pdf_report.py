@@ -160,9 +160,56 @@ def generate_pdf_report(
     elements.append(Spacer(1, 32))
     elements.append(create_patient_info_table())
 
-    # Convert images to RLImage
-    def cv_image_to_Image(cv_image, max_width, max_height):
-        is_success, buffer = cv2.imencode(".png", cv_image)
+    def overlay_logo(imagen, logo_path, position='bottom_right', scale=0.2):
+        if not os.path.exists(logo_path):
+            print(f"Logo file not found at {logo_path}. Skipping logo overlay.")
+            return imagen
+
+        logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
+        if logo is None:
+            print(f"Failed to load logo from {logo_path}. Skipping logo overlay.")
+            return imagen
+
+        h_img, w_img = imagen.shape[:2]
+        h_logo, w_logo = logo.shape[:2]
+
+        logo_width = int(w_img * scale)
+        aspect_ratio = w_logo / h_logo
+        logo_height = int(logo_width / aspect_ratio)
+        if logo_height > h_img or logo_width > w_img:
+            return imagen
+
+        logo_resized = cv2.resize(logo, (logo_width, logo_height), interpolation=cv2.INTER_AREA)
+
+        # Adjusted the vertical placement to bring the logos completely down to the bottom
+        if position == 'bottom_right':
+            x = w_img - logo_width - 60
+            y = h_img - logo_height
+        elif position == 'bottom_left':
+            x = 60
+            y = h_img - logo_height
+        else:
+            x = 10
+            y = 10
+
+        if x < 0 or y < 0 or x+logo_width > w_img or y+logo_height > h_img:
+            return imagen
+
+        if logo_resized.shape[2] == 4:
+            alpha_logo = logo_resized[:, :, 3] / 255.0
+            for c in range(0, 3):
+                imagen[y:y+logo_height, x:x+logo_width, c] = (
+                    alpha_logo * logo_resized[:, :, c] +
+                    (1 - alpha_logo) * imagen[y:y+logo_height, x:x+logo_width, c]
+                )
+        else:
+            imagen[y:y+logo_height, x:x+logo_width] = logo_resized
+
+        return imagen
+
+    def cv_image_to_Image_with_logo(cv_image, logo_path, position, max_width, max_height):
+        cv_image_with_logo = overlay_logo(cv_image.copy(), logo_path, position=position, scale=0.2)
+        is_success, buffer = cv2.imencode(".png", cv_image_with_logo)
         if not is_success:
             raise Exception("No se pudo convertir la imagen.")
         image_stream = BytesIO(buffer)
@@ -215,16 +262,27 @@ def generate_pdf_report(
     max_image_width = (doc.width - 6 * cm) / 4
     max_image_height = doc.height / 2
 
-    # Convert heatmap images to RLImage
-    left_heatmap_img = cv_image_to_Image(left_heatmap_image, max_image_width, max_image_height)
-    right_heatmap_img = cv_image_to_Image(right_heatmap_image, max_image_width, max_image_height)
+    logo_path = os.path.join('resources', 'logo_square.png')
 
-    # Adjust sizing to fit all four images in one row:
+    left_heatmap_img = cv_image_to_Image_with_logo(
+        left_heatmap_image,
+        logo_path,
+        position='bottom_left',
+        max_width=max_image_width,
+        max_height=max_image_height
+    )
+    right_heatmap_img = cv_image_to_Image_with_logo(
+        right_heatmap_image,
+        logo_path,
+        position='bottom_right',
+        max_width=max_image_width,
+        max_height=max_image_height
+    )
+
     small_space_between_elements = 0.5 * cm
     large_space_between_pairs = 2 * cm
     adjusted_image_width = (doc.width - (2 * small_space_between_elements) - large_space_between_pairs) / 4
 
-    # Adjust original images to same width
     def adjust_image_size(img, new_width):
         aspect = img.drawHeight / float(img.drawWidth)
         img.drawWidth = new_width
@@ -272,10 +330,8 @@ def generate_pdf_report(
 
     if observaciones.strip():
         elements.append(Spacer(1, 4))
-
         observaciones_heading = Paragraph("<b>Observaciones:</b>", normal_style)
         elements.append(observaciones_heading)
-
         observaciones_content = Paragraph(observaciones, normal_style)
         elements.append(observaciones_content)
         elements.append(Spacer(1, 24))

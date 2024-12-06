@@ -67,8 +67,9 @@ def procesar_imagen(ruta, ruta_logotipo, recolor=True, image=None, foot_side="ri
 
     final_image = agregar_lineas(final_image, largest_contour, foot_side)
 
-    if ruta_logotipo and os.path.exists(ruta_logotipo):
-        final_image = agregar_logotipo(final_image, ruta_logotipo)
+    # Removed the logo addition from image processing
+    # if ruta_logotipo and os.path.exists(ruta_logotipo):
+    #     final_image = agregar_logotipo(final_image, ruta_logotipo)
 
     return final_image
 
@@ -154,35 +155,4 @@ def dibujar_cruz(imagen, punto, color, size=20, thickness=2):
     y = int(max(0, min(y, imagen.shape[0] - 1)))
     cv2.line(imagen, (x - size // 2, y), (x + size // 2, y), color, thickness)
     cv2.line(imagen, (x, y - size // 2), (x, y + size // 2), color, thickness)
-    return imagen
-
-def agregar_logotipo(imagen, ruta_logotipo):
-    logotipo = cv2.imread(ruta_logotipo, cv2.IMREAD_UNCHANGED)
-    if logotipo is None:
-        return imagen
-
-    alto, ancho = imagen.shape[:2]
-    max_logo_width = int(ancho * 0.5)
-    max_logo_height = int(alto * 0.5)
-    
-    logo_height, logo_width = logotipo.shape[:2]
-    scale = min(max_logo_width / logo_width, max_logo_height / logo_height)
-    logo_new_width = int(logo_width * scale)
-    logo_new_height = int(logo_height * scale)
-    logotipo = cv2.resize(logotipo, (logo_new_width, logo_new_height), interpolation=cv2.INTER_AREA)
-
-    x_offset = ancho - logo_new_width - 10
-    y_offset = alto - logo_new_height - 10
-
-    if logotipo.shape[2] == 4:
-        alpha = logotipo[:, :, 3] / 255.0
-        logo_rgb = logotipo[:, :, :3]
-        roi = imagen[y_offset:y_offset+logo_new_height, x_offset:x_offset+logo_new_width]
-
-        for c in range(0, 3):
-            roi[:, :, c] = (alpha * logo_rgb[:, :, c] + (1 - alpha) * roi[:, :, c])
-        imagen[y_offset:y_offset+logo_new_height, x_offset:x_offset+logo_new_width] = roi
-    else:
-        imagen[y_offset:y_offset+logo_new_height, x_offset:x_offset+logo_new_width] = logotipo
-
     return imagen
