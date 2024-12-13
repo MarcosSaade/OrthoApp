@@ -8,13 +8,13 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QFont, QPainter, QIcon
 from PyQt5.QtCore import Qt, QSettings
 from utils import convertir_cv_qt, load_fonts
-from ui_components import PatientInfoDialog
+from ui_components import PatientInfoDialog, ConfirmationDialog
 from image_processing import procesar_imagen
 from pdf_report import generate_pdf_report
 from scanner import scan_image
 
 
-TEST_MODE = False  # Set to True for testing (uploads images), False for production (scans images)
+TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
 
 
 class AspectRatioLabel(QLabel):
@@ -64,6 +64,7 @@ class VentanaPrincipal(QMainWindow):
         self.load_preferences()
 
         self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
+        self.last_pdf_directory = self.settings.value("last_pdf_directory", self.last_directory)
 
         # Load Roboto Font
         self.font_family = load_fonts()
@@ -133,13 +134,11 @@ class VentanaPrincipal(QMainWindow):
             self.boton_cargar_derecho.clicked.connect(self.escanear_imagen_derecha)
             self.boton_cargar_derecho.setToolTip("Escanear el pie derecho")
 
-        self.boton_cargar_izquierdo.setFixedSize(200, 50)
-        self.boton_cargar_izquierdo.setFont(QFont(self.font_family, 14))
-        self.boton_cargar_izquierdo.setObjectName('boton_cargar')
-
-        self.boton_cargar_derecho.setFixedSize(200, 50)
-        self.boton_cargar_derecho.setFont(QFont(self.font_family, 14))
-        self.boton_cargar_derecho.setObjectName('boton_cargar')
+        # Set button properties
+        for boton in [self.boton_cargar_izquierdo, self.boton_cargar_derecho]:
+            boton.setFixedSize(200, 50)
+            boton.setFont(QFont(self.font_family, 14))
+            boton.setObjectName('boton_cargar')
 
         self.boton_generar_reporte = QPushButton("Generar Reporte")
         self.boton_generar_reporte.clicked.connect(self.generar_reporte)
@@ -164,7 +163,6 @@ class VentanaPrincipal(QMainWindow):
 
         # Main Layout
         main_layout = QVBoxLayout()
-        # Removed header_layout
         main_layout.addLayout(imagenes_layout)
         main_layout.addItem(spacer)
         main_layout.addLayout(botones_layout)
@@ -250,7 +248,7 @@ class VentanaPrincipal(QMainWindow):
                     raise Exception("No se pudo cargar la imagen.")
 
                 self.left_image_processed = procesar_imagen(
-                    ruta_archivo, None, recolor=True, foot_side="left"
+                    ruta=ruta_archivo, ruta_logotipo=None, recolor=True, image=None, foot_side="left"
                 )
 
                 pixmap = convertir_cv_qt(self.left_image_processed)
@@ -277,7 +275,7 @@ class VentanaPrincipal(QMainWindow):
                     raise Exception("No se pudo cargar la imagen.")
 
                 self.right_image_processed = procesar_imagen(
-                    ruta_archivo, None, recolor=True, foot_side="right"
+                    ruta=ruta_archivo, ruta_logotipo=None, recolor=True, image=None, foot_side="right"
                 )
 
                 pixmap = convertir_cv_qt(self.right_image_processed)
@@ -297,7 +295,7 @@ class VentanaPrincipal(QMainWindow):
             self.left_image_original = cv2.rotate(self.left_image_original, cv2.ROTATE_180)
 
             self.left_image_processed = procesar_imagen(
-                None, None, recolor=True, image=self.left_image_original, foot_side="left"
+                ruta=None, ruta_logotipo=None, recolor=True, image=self.left_image_original, foot_side="left"
             )
 
             pixmap = convertir_cv_qt(self.left_image_processed)
@@ -317,7 +315,7 @@ class VentanaPrincipal(QMainWindow):
             self.right_image_original = cv2.rotate(self.right_image_original, cv2.ROTATE_180)
 
             self.right_image_processed = procesar_imagen(
-                None, None, recolor=True, image=self.right_image_original, foot_side="right"
+                ruta=None, ruta_logotipo=None, recolor=True, image=self.right_image_original, foot_side="right"
             )
 
             pixmap = convertir_cv_qt(self.right_image_processed)
@@ -339,49 +337,126 @@ class VentanaPrincipal(QMainWindow):
             QMessageBox.warning(self, "Advertencia", "Debe cargar o escanear las imágenes de ambos pies.")
             return
 
-        dialog = PatientInfoDialog()
-        if dialog.exec_() == QDialog.Accepted:
-            paciente = dialog.paciente_edit.text()
-            telefono = dialog.telefono_edit.text()
-            longitud_pie = dialog.longitud_edit.text()
-            material = dialog.material_edit.currentText()
-            entrega_date = dialog.date_entrega_edit.date().toString("dd/MM/yyyy")
-            fecha_escaneo = dialog.fecha_escaneo_edit.date().toString("dd/MM/yyyy")
-            sucursal = dialog.sucursal_edit.currentText()
-            taller = dialog.taller_edit.currentText()
-            order_number = dialog.order_number_edit.text()
-            observaciones = dialog.observaciones_edit.toPlainText()
+        # Initialize variables to hold patient info
+        patient_info = {
+            'paciente': '',
+            'telefono': '',
+            'longitud_pie': '',
+            'material': '',
+            'entrega_date': '',
+            'fecha_escaneo': '',
+            'sucursal': '',
+            'taller': '',
+            'order_number': '',
+            'observaciones': ''
+        }
 
-            ruta_logotipo = os.path.join('resources', 'logo_square.png')
+        while True:
+            dialog = PatientInfoDialog(
+                paciente=patient_info['paciente'],
+                telefono=patient_info['telefono'],
+                longitud_pie=patient_info['longitud_pie'],
+                material=patient_info['material'],
+                entrega_date=patient_info['entrega_date'],
+                fecha_escaneo=patient_info['fecha_escaneo'],
+                sucursal=patient_info['sucursal'],
+                taller=patient_info['taller'],
+                order_number=patient_info['order_number'],
+                observaciones=patient_info['observaciones']
+            )
+            if dialog.exec_() == QDialog.Accepted:
+                # Retrieve data from dialog
+                paciente = dialog.paciente_edit.text()
+                telefono = dialog.telefono_edit.text()
+                longitud_pie = dialog.longitud_edit.text()
+                material = dialog.get_material()
+                entrega_date = dialog.get_fecha_entrega().strftime("%d/%m/%Y")
+                fecha_escaneo = dialog.fecha_escaneo_edit.date().toString("dd/MM/yyyy")
+                sucursal = dialog.sucursal_edit.currentText()
+                taller = dialog.taller_edit.currentText()
+                order_number = dialog.order_number_edit.text()
+                observaciones = dialog.observaciones_edit.toPlainText()
 
-            left_skin_image = procesar_imagen(
-                None, ruta_logotipo, recolor=False, image=self.left_image_original, foot_side="left"
-            )
-            left_heatmap_image = procesar_imagen(
-                None, ruta_logotipo, recolor=True, image=self.left_image_original, foot_side="left"
-            )
+                # Update patient_info with current data
+                patient_info.update({
+                    'paciente': paciente,
+                    'telefono': telefono,
+                    'longitud_pie': longitud_pie,
+                    'material': material,
+                    'entrega_date': entrega_date,
+                    'fecha_escaneo': fecha_escaneo,
+                    'sucursal': sucursal,
+                    'taller': taller,
+                    'order_number': order_number,
+                    'observaciones': observaciones
+                })
 
-            right_skin_image = procesar_imagen(
-                None, ruta_logotipo, recolor=False, image=self.right_image_original, foot_side="right"
-            )
-            right_heatmap_image = procesar_imagen(
-                None, ruta_logotipo, recolor=True, image=self.right_image_original, foot_side="right"
-            )
-
-            try:
-                generate_pdf_report(
-                    paciente, telefono, order_number, sucursal, taller,
-                    longitud_pie, material, entrega_date, observaciones,
-                    left_skin_image, right_skin_image,
-                    left_heatmap_image, right_heatmap_image,
-                    self.left_image_original, self.right_image_original,
-                    self.last_directory, fecha_escaneo
+                # Show Confirmation Dialog
+                confirm_dialog = ConfirmationDialog(
+                    paciente=paciente,
+                    telefono=telefono,
+                    longitud_pie=longitud_pie,
+                    material=material,
+                    entrega_date=entrega_date,
+                    fecha_escaneo=fecha_escaneo,
+                    sucursal=sucursal,
+                    taller=taller,
+                    order_number=order_number,
+                    observaciones=observaciones
                 )
-                QMessageBox.information(self, "Éxito", "Reporte PDF generado exitosamente.")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"No se pudo generar el reporte PDF.\n{str(e)}")
-        else:
-            return
+                if confirm_dialog.exec_() == QDialog.Accepted:
+                    ruta_logotipo = os.path.join('resources', 'logo_square.png')
+
+                    left_skin_image = procesar_imagen(
+                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=False, image=self.left_image_original, foot_side="left"
+                    )
+                    left_heatmap_image = procesar_imagen(
+                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=True, image=self.left_image_original, foot_side="left"
+                    )
+
+                    right_skin_image = procesar_imagen(
+                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=False, image=self.right_image_original, foot_side="right"
+                    )
+                    right_heatmap_image = procesar_imagen(
+                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=True, image=self.right_image_original, foot_side="right"
+                    )
+
+                    try:
+                        ruta_pdf = generate_pdf_report(
+                            paciente=paciente,
+                            telefono=telefono,
+                            order_number=order_number,
+                            sucursal=sucursal,
+                            taller=taller,
+                            longitud_pie=longitud_pie,
+                            material=material,
+                            observaciones=observaciones,
+                            left_skin_image=left_skin_image,
+                            right_skin_image=right_skin_image,
+                            left_heatmap_image=left_heatmap_image,
+                            right_heatmap_image=right_heatmap_image,
+                            left_original_image=self.left_image_original,
+                            right_original_image=self.right_image_original,
+                            last_pdf_directory=self.last_pdf_directory,
+                            fecha_escaneo=fecha_escaneo,
+                            fecha_entrega=entrega_date
+                        )
+                        QMessageBox.information(self, "Éxito", "Reporte PDF generado exitosamente.")
+
+                        # Update last_pdf_directory
+                        if ruta_pdf:
+                            self.last_pdf_directory = os.path.dirname(ruta_pdf)
+                            self.settings.setValue("last_pdf_directory", self.last_pdf_directory)
+
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", f"No se pudo generar el reporte PDF.\n{str(e)}")
+                    break  # Exit the loop after successful report generation
+                else:
+                    # User chose to cancel and return to editing patient info
+                    continue  # Re-open PatientInfoDialog with existing data
+            else:
+                # User canceled the PatientInfoDialog
+                break
 
     def show_help(self):
         help_text = (
@@ -412,6 +487,7 @@ class VentanaPrincipal(QMainWindow):
     def save_preferences(self):
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("last_directory", self.last_directory)
+        self.settings.setValue("last_pdf_directory", self.last_pdf_directory)
 
     def closeEvent(self, event):
         self.save_preferences()
@@ -459,6 +535,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-

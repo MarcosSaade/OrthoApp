@@ -13,9 +13,49 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate
 from PyQt5.QtWidgets import QFileDialog
 import datetime
+import numpy as np  # Asegúrate de importar numpy si estás trabajando con ndarrays
+
 
 def sanitize_filename(name):
     return re.sub(r'[^A-Za-z0-9\s_-]', '', name).strip()
+
+
+def format_date_spanish(date_str):
+    day_names = {
+        0: "Lunes",
+        1: "Martes",
+        2: "Miércoles",
+        3: "Jueves",
+        4: "Viernes",
+        5: "Sábado",
+        6: "Domingo"
+    }
+
+    month_names = {
+        1: "Enero",
+        2: "Febrero",
+        3: "Marzo",
+        4: "Abril",
+        5: "Mayo",
+        6: "Junio",
+        7: "Julio",
+        8: "Agosto",
+        9: "Septiembre",
+        10: "Octubre",
+        11: "Noviembre",
+        12: "Diciembre"
+    }
+
+    try:
+        day, month, year = map(int, date_str.split('/'))
+        date_obj = datetime.date(year, month, day)
+        weekday = day_names[date_obj.weekday()]
+        month_name = month_names[month]
+        return f"{weekday} {day} de {month_name} de {year}"
+    except Exception as e:
+        print(f"Error al formatear la fecha: {e}")
+        return date_str
+
 
 def generate_pdf_report(
     paciente, telefono, order_number, sucursal, taller,
@@ -23,22 +63,48 @@ def generate_pdf_report(
     left_skin_image, right_skin_image,
     left_heatmap_image, right_heatmap_image,
     left_original_image, right_original_image,
-    last_directory, fecha_escaneo,
+    last_pdf_directory, fecha_escaneo,
     fecha_entrega  # New parameter for delivery date
 ):
-    # Use the provided delivery date instead of calculating it here
-    entrega_date = fecha_entrega.strftime("%d/%m/%Y")
-    entrega_date_formatted = format_date_spanish(entrega_date)
-    fecha_escaneo_formatted = format_date_spanish(fecha_escaneo)
+    # Validaciones de tipos de entrada
+    if not isinstance(last_pdf_directory, (str, bytes, os.PathLike)):
+        raise TypeError("El parámetro 'last_pdf_directory' debe ser una cadena que representa una ruta válida.")
 
+    if not isinstance(fecha_entrega, (datetime.date, datetime.datetime, str)):
+        raise TypeError("El parámetro 'fecha_entrega' debe ser una cadena con formato 'dd/mm/yyyy' o un objeto datetime.")
+
+    if not isinstance(fecha_escaneo, (datetime.date, datetime.datetime, str)):
+        raise TypeError("El parámetro 'fecha_escaneo' debe ser una cadena con formato 'dd/mm/yyyy' o un objeto datetime.")
+
+    # Procesamiento de fechas
+    if isinstance(fecha_entrega, (datetime.date, datetime.datetime)):
+        entrega_date_str = fecha_entrega.strftime("%d/%m/%Y")
+    elif isinstance(fecha_entrega, str):
+        entrega_date_str = fecha_entrega
+    else:
+        raise ValueError("fecha_entrega debe ser una cadena con formato 'dd/mm/yyyy' o un objeto datetime.")
+
+    entrega_date_formatted = format_date_spanish(entrega_date_str)
+
+    if isinstance(fecha_escaneo, (datetime.date, datetime.datetime)):
+        fecha_escaneo_str = fecha_escaneo.strftime("%d/%m/%Y")
+    elif isinstance(fecha_escaneo, str):
+        fecha_escaneo_str = fecha_escaneo
+    else:
+        raise ValueError("fecha_escaneo debe ser una cadena con formato 'dd/mm/yyyy' o un objeto datetime.")
+
+    fecha_escaneo_formatted = format_date_spanish(fecha_escaneo_str)
+
+    # Generación del nombre de archivo seguro
     default_filename = "Reporte.pdf"
     if paciente and order_number:
         safe_paciente = sanitize_filename(paciente).replace(' ', '_')
         safe_order_number = sanitize_filename(order_number)
         default_filename = f"{safe_paciente}-{safe_order_number}.pdf"
 
-    initial_path = os.path.join(last_directory, default_filename)
+    initial_path = os.path.join(last_pdf_directory, default_filename)
 
+    # Selección de ruta para guardar el PDF
     opciones = QFileDialog.Options()
     ruta_archivo, _ = QFileDialog.getSaveFileName(
         None, "Guardar Reporte PDF", initial_path,
@@ -50,6 +116,7 @@ def generate_pdf_report(
     if not ruta_archivo.lower().endswith('.pdf'):
         ruta_archivo += '.pdf'
 
+    # Registro de fuentes
     try:
         font_path = os.path.join('resources', 'Roboto-Regular.ttf')
         if os.path.exists(font_path):
@@ -57,17 +124,22 @@ def generate_pdf_report(
         else:
             print("Roboto font not found. Using default fonts.")
     except Exception as e:
-        print(f"Error registering font: {e}")
+        print(f"Error al registrar la fuente: {e}")
 
+    # Función para agregar fondo
     def add_background(canvas_obj, doc):
         bg_image_path = os.path.join('resources', 'background.jpeg')
         if os.path.exists(bg_image_path):
             canvas_obj.saveState()
-            canvas_obj.drawImage(bg_image_path, 0, 0, width=landscape(A4)[0], height=landscape(A4)[1])
+            try:
+                canvas_obj.drawImage(bg_image_path, 0, 0, width=landscape(A4)[0], height=landscape(A4)[1])
+            except Exception as e:
+                print(f"Error al dibujar la imagen de fondo: {e}")
             canvas_obj.restoreState()
         else:
-            print("Background image not found.")
+            print("Imagen de fondo no encontrada.")
 
+    # Configuración del documento
     doc = BaseDocTemplate(ruta_archivo, pagesize=landscape(A4))
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
     template = PageTemplate(id='test', frames=frame, onPage=add_background)
@@ -91,41 +163,6 @@ def generate_pdf_report(
             alignment=1, fontName='Helvetica-Bold'
         )
 
-    def format_date_spanish(date_str):
-        day_names = {
-            0: "Lunes",
-            1: "Martes",
-            2: "Miércoles",
-            3: "Jueves",
-            4: "Viernes",
-            5: "Sábado",
-            6: "Domingo"
-        }
-
-        month_names = {
-            1: "Enero",
-            2: "Febrero",
-            3: "Marzo",
-            4: "Abril",
-            5: "Mayo",
-            6: "Junio",
-            7: "Julio",
-            8: "Agosto",
-            9: "Septiembre",
-            10: "Octubre",
-            11: "Noviembre",
-            12: "Diciembre"
-        }
-
-        try:
-            day, month, year = map(int, date_str.split('/'))
-            date_obj = datetime.date(year, month, day)
-            weekday = day_names[date_obj.weekday()]
-            month_name = month_names[month]
-            return f"{weekday} {day} de {month_name} de {year}"
-        except:
-            return date_str
-
     def create_patient_info_table():
         patient_info_left = f"""
         <b>Paciente:</b> {paciente}<br/>
@@ -136,6 +173,7 @@ def generate_pdf_report(
 
         patient_info_right = f"""
         <b>Sucursal:</b> {sucursal}<br/>
+        <b>Material:</b> {material}<br/>
         <b>Taller:</b> {taller}<br/>
         <b>Fecha de Escaneo:</b> {fecha_escaneo_formatted}<br/>
         <b>Fecha de Entrega:</b> {entrega_date_formatted}<br/>
@@ -160,17 +198,17 @@ def generate_pdf_report(
         ]))
         return table_patient_info
 
-    elements.append(Spacer(1, 32))
+    elements.append(Spacer(1, 24))
     elements.append(create_patient_info_table())
 
     def overlay_logo(imagen, logo_path, position='bottom_right', scale=0.2):
         if not os.path.exists(logo_path):
-            print(f"Logo file not found at {logo_path}. Skipping logo overlay.")
+            print(f"Archivo de logo no encontrado en {logo_path}. Saltando superposición del logo.")
             return imagen
 
         logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
         if logo is None:
-            print(f"Failed to load logo from {logo_path}. Skipping logo overlay.")
+            print(f"Fallo al cargar el logo desde {logo_path}. Saltando superposición del logo.")
             return imagen
 
         h_img, w_img = imagen.shape[:2]
@@ -210,6 +248,9 @@ def generate_pdf_report(
         return imagen
 
     def cv_image_to_Image_with_logo(cv_image, logo_path, position, max_width, max_height):
+        if not isinstance(cv_image, np.ndarray):
+            raise TypeError("cv_image debe ser un objeto ndarray de OpenCV.")
+        
         cv_image_with_logo = overlay_logo(cv_image.copy(), logo_path, position=position, scale=0.2)
         is_success, buffer = cv2.imencode(".png", cv_image_with_logo)
         if not is_success:
@@ -227,16 +268,16 @@ def generate_pdf_report(
         return img
 
     def resize_image_to_fixed_size(cv_image, target_width=1100, target_height=1600):
+        if not isinstance(cv_image, np.ndarray):
+            raise TypeError("cv_image debe ser un objeto ndarray de OpenCV.")
+        
         resized_image = cv2.resize(cv_image, (target_width, target_height), interpolation=cv2.INTER_AREA)
         return resized_image
 
-    left_original_resized = resize_image_to_fixed_size(left_original_image, 1100, 1600)
-    right_original_resized = resize_image_to_fixed_size(right_original_image, 1100, 1600)
-
-    left_original_flipped = cv2.flip(left_original_resized, 1)
-    right_original_flipped = cv2.flip(right_original_resized, 1)
-
     def cv_image_to_rl_image_original(cv_image, dpi=300):
+        if not isinstance(cv_image, np.ndarray):
+            raise TypeError("cv_image debe ser un objeto ndarray de OpenCV.")
+        
         height_px, width_px = cv_image.shape[:2]
         width_pt = (width_px / dpi) * 72
         height_pt = (height_px / dpi) * 72
@@ -246,9 +287,6 @@ def generate_pdf_report(
         image_stream = BytesIO(buffer)
         img = RLImage(image_stream, width=width_pt, height=height_pt)
         return img
-
-    left_original_rl = cv_image_to_rl_image_original(left_original_flipped, dpi=300)
-    right_original_rl = cv_image_to_rl_image_original(right_original_flipped, dpi=300)
 
     def ensure_image_fits(img, max_width, max_height):
         if img.drawWidth > max_width or img.drawHeight > max_height:
@@ -261,6 +299,23 @@ def generate_pdf_report(
                 img.drawWidth = max_height / aspect
         return img
 
+    def adjust_image_size(img, new_width):
+        aspect = img.drawHeight / float(img.drawWidth)
+        img.drawWidth = new_width
+        img.drawHeight = new_width * aspect
+        return img
+
+    # Procesamiento de imágenes originales
+    left_original_resized = resize_image_to_fixed_size(left_original_image, 1100, 1600)
+    right_original_resized = resize_image_to_fixed_size(right_original_image, 1100, 1600)
+
+    left_original_flipped = cv2.flip(left_original_resized, 1)
+    right_original_flipped = cv2.flip(right_original_resized, 1)
+
+    left_original_rl = cv_image_to_rl_image_original(left_original_flipped, dpi=300)
+    right_original_rl = cv_image_to_rl_image_original(right_original_flipped, dpi=300)
+
+    # Ajuste de tamaño de imágenes
     max_image_width = (doc.width - 6 * cm) / 4
     max_image_height = doc.height / 2
 
@@ -285,12 +340,6 @@ def generate_pdf_report(
     large_space_between_pairs = 2 * cm
     adjusted_image_width = (doc.width - (2 * small_space_between_elements) - large_space_between_pairs) / 4
 
-    def adjust_image_size(img, new_width):
-        aspect = img.drawHeight / float(img.drawWidth)
-        img.drawWidth = new_width
-        img.drawHeight = new_width * aspect
-        return img
-
     left_original_rl = ensure_image_fits(left_original_rl, adjusted_image_width, max_image_height)
     right_original_rl = ensure_image_fits(right_original_rl, adjusted_image_width, max_image_height)
 
@@ -299,6 +348,7 @@ def generate_pdf_report(
     left_heatmap_img = adjust_image_size(left_heatmap_img, adjusted_image_width)
     right_heatmap_img = adjust_image_size(right_heatmap_img, adjusted_image_width)
 
+    # Creación de la tabla de imágenes
     data_images = [
         [left_original_rl, Spacer(1, small_space_between_elements), right_original_rl,
          Spacer(1, large_space_between_pairs), left_heatmap_img, Spacer(1, small_space_between_elements), right_heatmap_img]
@@ -330,6 +380,7 @@ def generate_pdf_report(
 
     elements.append(table_images)
 
+    # Añadir observaciones si existen
     if observaciones.strip():
         elements.append(Spacer(1, 4))
         observaciones_heading = Paragraph("<b>Observaciones:</b>", normal_style)
@@ -338,40 +389,11 @@ def generate_pdf_report(
         elements.append(observaciones_content)
         elements.append(Spacer(1, 24))
 
-    doc.build(elements)
-
-# Helper function moved outside to allow usage before its definition
-def format_date_spanish(date_str):
-    day_names = {
-        0: "Lunes",
-        1: "Martes",
-        2: "Miércoles",
-        3: "Jueves",
-        4: "Viernes",
-        5: "Sábado",
-        6: "Domingo"
-    }
-
-    month_names = {
-        1: "Enero",
-        2: "Febrero",
-        3: "Marzo",
-        4: "Abril",
-        5: "Mayo",
-        6: "Junio",
-        7: "Julio",
-        8: "Agosto",
-        9: "Septiembre",
-        10: "Octubre",
-        11: "Noviembre",
-        12: "Diciembre"
-    }
-
+    # Construcción del PDF
     try:
-        day, month, year = map(int, date_str.split('/'))
-        date_obj = datetime.date(year, month, day)
-        weekday = day_names[date_obj.weekday()]
-        month_name = month_names[month]
-        return f"{weekday} {day} de {month_name} de {year}"
-    except:
-        return date_str
+        doc.build(elements)
+        print("Reporte PDF generado exitosamente.")
+        return ruta_archivo  # Return the path where PDF was saved
+    except Exception as e:
+        print(f"No se pudo generar el reporte PDF. Error: {e}")
+        raise
