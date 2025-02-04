@@ -1,9 +1,11 @@
 # app.py
 import os
 import cv2
+import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem
+    QWidget, QMessageBox, QSizePolicy, QAction, QDialog, QSpacerItem, QMenu, QCheckBox, QComboBox,
+    QDialogButtonBox, QFormLayout
 )
 from PyQt5.QtGui import QPixmap, QFont, QPainter, QIcon
 from PyQt5.QtCore import Qt, QSettings
@@ -12,7 +14,6 @@ from ui_components import PatientInfoDialog, ConfirmationDialog
 from image_processing import procesar_imagen
 from pdf_report import generate_pdf_report
 from scanner import scan_image
-
 
 TEST_MODE = True  # Set to True for testing (uploads images), False for production (scans images)
 
@@ -59,10 +60,11 @@ class VentanaPrincipal(QMainWindow):
         self.right_image_original = None
         self.right_image_processed = None
 
-        # Load user preferences
+        # QSettings: Load user preferences
         self.settings = QSettings("OrtoFlex", "ScannerApp")
         self.load_preferences()
 
+        # Last used directories
         self.last_directory = self.settings.value("last_directory", os.path.expanduser("~"))
         self.last_pdf_directory = self.settings.value("last_pdf_directory", self.last_directory)
 
@@ -145,7 +147,8 @@ class VentanaPrincipal(QMainWindow):
         self.boton_generar_reporte.setFixedSize(200, 50)
         self.boton_generar_reporte.setToolTip("Generar reporte PDF")
         self.boton_generar_reporte.setFont(QFont(self.font_family, 14))
-        self.boton_generar_reporte.setEnabled(False)
+        # Now, even if no images are loaded, allow generating a report
+        self.boton_generar_reporte.setEnabled(True)
         self.boton_generar_reporte.setObjectName('boton_generar_reporte')
 
         # Buttons Layout
@@ -177,11 +180,20 @@ class VentanaPrincipal(QMainWindow):
         self.setCentralWidget(contenedor)
 
     def crear_menu(self):
-        self.menu_bar = self.menuBar()
+        # File / Nuevo
         nuevo_action = QAction("Nuevo", self)
         nuevo_action.triggered.connect(self.nuevo)
         self.menu_bar.addAction(nuevo_action)
 
+        # Settings (New)
+        settings_menu = QMenu("Configuración", self)
+        self.menu_bar.addMenu(settings_menu)
+
+        open_settings_action = QAction("Preferencias", self)
+        open_settings_action.triggered.connect(self.open_settings_dialog)
+        settings_menu.addAction(open_settings_action)
+
+        # Help Menu
         help_menu = self.menu_bar.addMenu("Ayuda")
 
         help_action = QAction("Instrucciones", self)
@@ -191,6 +203,21 @@ class VentanaPrincipal(QMainWindow):
         about_action = QAction("Acerca de", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+
+    def open_settings_dialog(self):
+        dialog = SettingsDialog(
+            default_location=self.default_location,
+            autoclicker_enabled=self.autoclicker_enabled,
+            parent=self
+        )
+        if dialog.exec_() == QDialog.Accepted:
+            # Update local preferences from dialog
+            self.default_location = dialog.selected_location
+            self.autoclicker_enabled = dialog.is_autoclicker_enabled
+
+            # Save them to QSettings so they're persisted
+            self.settings.setValue("default_location", self.default_location)
+            self.settings.setValue("autoclicker_enabled", self.autoclicker_enabled)
 
     def aplicar_estilos(self):
         estilo = """
@@ -254,8 +281,6 @@ class VentanaPrincipal(QMainWindow):
                 pixmap = convertir_cv_qt(self.left_image_processed)
                 self.display_left_image(pixmap)
 
-                if self.left_image_original is not None and self.right_image_original is not None:
-                    self.boton_generar_reporte.setEnabled(True)
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo procesar la imagen.\n{str(e)}")
 
@@ -281,17 +306,17 @@ class VentanaPrincipal(QMainWindow):
                 pixmap = convertir_cv_qt(self.right_image_processed)
                 self.display_right_image(pixmap)
 
-                if self.left_image_original is not None and self.right_image_original is not None:
-                    self.boton_generar_reporte.setEnabled(True)
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"No se pudo procesar la imagen.\n{str(e)}")
 
     def escanear_imagen_izquierda(self):
         try:
-            self.left_image_original = scan_image()
+            # Pass autoclicker preference to the scanner
+            self.left_image_original = scan_image(autoclicker=self.autoclicker_enabled)
             if self.left_image_original is None:
                 raise Exception("No se pudo escanear la imagen.")
 
+            # Example rotation
             self.left_image_original = cv2.rotate(self.left_image_original, cv2.ROTATE_180)
 
             self.left_image_processed = procesar_imagen(
@@ -301,17 +326,17 @@ class VentanaPrincipal(QMainWindow):
             pixmap = convertir_cv_qt(self.left_image_processed)
             self.display_left_image(pixmap)
 
-            if self.left_image_original is not None and self.right_image_original is not None:
-                self.boton_generar_reporte.setEnabled(True)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo escanear o procesar la imagen.\n{str(e)}")
 
     def escanear_imagen_derecha(self):
         try:
-            self.right_image_original = scan_image()
+            # Pass autoclicker preference to the scanner
+            self.right_image_original = scan_image(autoclicker=self.autoclicker_enabled)
             if self.right_image_original is None:
                 raise Exception("No se pudo escanear la imagen.")
 
+            # Example rotation
             self.right_image_original = cv2.rotate(self.right_image_original, cv2.ROTATE_180)
 
             self.right_image_processed = procesar_imagen(
@@ -321,8 +346,6 @@ class VentanaPrincipal(QMainWindow):
             pixmap = convertir_cv_qt(self.right_image_processed)
             self.display_right_image(pixmap)
 
-            if self.left_image_original is not None and self.right_image_original is not None:
-                self.boton_generar_reporte.setEnabled(True)
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudo escanear o procesar la imagen.\n{str(e)}")
 
@@ -333,10 +356,6 @@ class VentanaPrincipal(QMainWindow):
         self.label_imagen_derecha.setPixmap(pixmap)
 
     def generar_reporte(self):
-        if self.left_image_original is None or self.right_image_original is None:
-            QMessageBox.warning(self, "Advertencia", "Debe cargar o escanear las imágenes de ambos pies.")
-            return
-
         # Initialize variables to hold patient info
         patient_info = {
             'paciente': '',
@@ -359,13 +378,12 @@ class VentanaPrincipal(QMainWindow):
                 material=patient_info['material'],
                 entrega_date=patient_info['entrega_date'],
                 fecha_escaneo=patient_info['fecha_escaneo'],
-                sucursal=patient_info['sucursal'],
+                sucursal=self.default_location,
                 taller=patient_info['taller'],
                 order_number=patient_info['order_number'],
                 observaciones=patient_info['observaciones']
             )
             if dialog.exec_() == QDialog.Accepted:
-                # Retrieve data from dialog
                 paciente = dialog.paciente_edit.text()
                 telefono = dialog.telefono_edit.text()
                 longitud_pie = dialog.longitud_edit.text()
@@ -377,7 +395,6 @@ class VentanaPrincipal(QMainWindow):
                 order_number = dialog.order_number_edit.text()
                 observaciones = dialog.observaciones_edit.toPlainText()
 
-                # Update patient_info with current data
                 patient_info.update({
                     'paciente': paciente,
                     'telefono': telefono,
@@ -391,7 +408,6 @@ class VentanaPrincipal(QMainWindow):
                     'observaciones': observaciones
                 })
 
-                # Show Confirmation Dialog
                 confirm_dialog = ConfirmationDialog(
                     paciente=paciente,
                     telefono=telefono,
@@ -406,20 +422,37 @@ class VentanaPrincipal(QMainWindow):
                 )
                 if confirm_dialog.exec_() == QDialog.Accepted:
                     ruta_logotipo = os.path.join('resources', 'logo_square.png')
+                    blank_image = np.ones((600,600,3), dtype=np.uint8) * 255
 
-                    left_skin_image = procesar_imagen(
-                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=False, image=self.left_image_original, foot_side="left"
-                    )
-                    left_heatmap_image = procesar_imagen(
-                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=True, image=self.left_image_original, foot_side="left"
-                    )
+                    # Determine images to use. If an image is missing, use a blank image.
+                    if self.left_image_original is None:
+                        left_original = blank_image.copy()
+                        left_skin_image = left_original.copy()
+                        left_heatmap_image = left_original.copy()
+                    else:
+                        left_original = self.left_image_original
+                        left_skin_image = procesar_imagen(
+                            ruta=None, ruta_logotipo=ruta_logotipo, recolor=False, image=self.left_image_original, foot_side="left"
+                        )
+                        left_heatmap_image = procesar_imagen(
+                            ruta=None, ruta_logotipo=ruta_logotipo, recolor=True, image=self.left_image_original, foot_side="left"
+                        )
 
-                    right_skin_image = procesar_imagen(
-                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=False, image=self.right_image_original, foot_side="right"
-                    )
-                    right_heatmap_image = procesar_imagen(
-                        ruta=None, ruta_logotipo=ruta_logotipo, recolor=True, image=self.right_image_original, foot_side="right"
-                    )
+                    if self.right_image_original is None:
+                        right_original = blank_image.copy()
+                        right_skin_image = right_original.copy()
+                        right_heatmap_image = right_original.copy()
+                    else:
+                        right_original = self.right_image_original
+                        right_skin_image = procesar_imagen(
+                            ruta=None, ruta_logotipo=ruta_logotipo, recolor=False, image=self.right_image_original, foot_side="right"
+                        )
+                        right_heatmap_image = procesar_imagen(
+                            ruta=None, ruta_logotipo=ruta_logotipo, recolor=True, image=self.right_image_original, foot_side="right"
+                        )
+
+                    # Compute flag: if no feet images were uploaded at all.
+                    no_feet = (self.left_image_original is None and self.right_image_original is None)
 
                     try:
                         ruta_pdf = generate_pdf_report(
@@ -435,27 +468,25 @@ class VentanaPrincipal(QMainWindow):
                             right_skin_image=right_skin_image,
                             left_heatmap_image=left_heatmap_image,
                             right_heatmap_image=right_heatmap_image,
-                            left_original_image=self.left_image_original,
-                            right_original_image=self.right_image_original,
+                            left_original_image=left_original,
+                            right_original_image=right_original,
                             last_pdf_directory=self.last_pdf_directory,
                             fecha_escaneo=fecha_escaneo,
-                            fecha_entrega=entrega_date
+                            fecha_entrega=entrega_date,
+                            no_feet_report=no_feet
                         )
                         QMessageBox.information(self, "Éxito", "Reporte PDF generado exitosamente.")
 
-                        # Update last_pdf_directory
                         if ruta_pdf:
                             self.last_pdf_directory = os.path.dirname(ruta_pdf)
                             self.settings.setValue("last_pdf_directory", self.last_pdf_directory)
 
                     except Exception as e:
                         QMessageBox.critical(self, "Error", f"No se pudo generar el reporte PDF.\n{str(e)}")
-                    break  # Exit the loop after successful report generation
+                    break
                 else:
-                    # User chose to cancel and return to editing patient info
-                    continue  # Re-open PatientInfoDialog with existing data
+                    continue
             else:
-                # User canceled the PatientInfoDialog
                 break
 
     def show_help(self):
@@ -465,7 +496,8 @@ class VentanaPrincipal(QMainWindow):
             f"{'Seleccione una imagen del pie izquierdo.' if TEST_MODE else 'Escanee la imagen del pie izquierdo.'}\n"
             f"2. {'Cargar' if TEST_MODE else 'Escanear'} Pie Derecho: "
             f"{'Seleccione una imagen del pie derecho.' if TEST_MODE else 'Escanee la imagen del pie derecho.'}\n"
-            "3. Generar Reporte: Genere un reporte PDF con las imágenes procesadas.\n\n"
+            "3. Generar Reporte: Genere un reporte PDF con las imágenes procesadas o, si no se han cargado imágenes, "
+            "un reporte con información del paciente sobre un fondo preestablecido.\n\n"
             "Presione 'Esc' para salir del modo de pantalla maximizada."
         )
         QMessageBox.information(self, "Ayuda", help_text)
@@ -483,11 +515,16 @@ class VentanaPrincipal(QMainWindow):
         geometry = self.settings.value("geometry")
         if geometry:
             self.restoreGeometry(geometry)
+        self.default_location = self.settings.value("default_location", "Interlomas")
+        autoclicker_val = self.settings.value("autoclicker_enabled", "true")
+        self.autoclicker_enabled = (autoclicker_val.lower() == "true")
 
     def save_preferences(self):
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("last_directory", self.last_directory)
         self.settings.setValue("last_pdf_directory", self.last_pdf_directory)
+        self.settings.setValue("default_location", self.default_location)
+        self.settings.setValue("autoclicker_enabled", self.autoclicker_enabled)
 
     def closeEvent(self, event):
         self.save_preferences()
@@ -523,7 +560,7 @@ class VentanaPrincipal(QMainWindow):
             self.label_imagen_derecha.setFont(QFont(self.font_family, 16))
             self.label_imagen_derecha.setStyleSheet("color: #1d3557;")
 
-        self.boton_generar_reporte.setEnabled(False)
+        self.boton_generar_reporte.setEnabled(True)
 
 
 def main():
